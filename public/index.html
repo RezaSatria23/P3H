@@ -1317,9 +1317,8 @@
         const firebaseConfig = {
             apiKey: "AIzaSyAWR8Ir2dp1DS69NAk7-9rvwPi4ns1TRqA",
             authDomain: "ppph-reza.firebaseapp.com",
-            databaseURL: "https://ppph-reza-default-rtdb.asia-southeast1.firebasedatabase.app", // Pastikan ini benar
             projectId: "ppph-reza",
-            storageBucket: "ppph-reza.appspot.com",
+            storageBucket: "ppph-reza.firebasestorage.app",
             messagingSenderId: "452147916822",
             appId: "1:452147916822:web:aa5b17f7df6f11278b4537"
         };
@@ -1860,61 +1859,62 @@
         }
 
          async function editUmkm(id) {
-    isEditMode = true;
-    currentUmkmId = id;
-    const umkm = umkmData.find(u => u.id === id);
-    
-    if (umkm) {
-        document.getElementById('modal-title').textContent = 'Edit Data UMKM';
-        document.getElementById('umkm-id').value = umkm.id;
-        document.getElementById('nama-umkm').value = umkm.nama;
-        document.getElementById('pemilik').value = umkm.pemilik;
-        document.getElementById('alamat').value = umkm.alamat;
-        document.getElementById('maps').value = umkm.maps || '';
-        document.getElementById('keterangan').value = umkm.keterangan || '';
-        
-        // Set status
-        document.querySelector(`input[name="status-halal"][value="${umkm.status}"]`).checked = true;
-        
-        // Load provinsi data
-        const provinceDropdown = document.getElementById('provinsi');
-        provinceDropdown.value = umkm.provinsi.id;
-        
-        // Trigger change event untuk memuat kabupaten
-        const event = new Event('change');
-        provinceDropdown.dispatchEvent(event);
-        
-        // Tunggu sebentar untuk memastikan kabupaten sudah dimuat
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Set kabupaten
-        const regencyDropdown = document.getElementById('kabupaten');
-        regencyDropdown.value = umkm.kabupaten.id;
-        
-        // Trigger change event untuk memuat kecamatan
-        regencyDropdown.dispatchEvent(event);
-        
-        // Tunggu sebentar untuk memastikan kecamatan sudah dimuat
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Set kecamatan
-        const districtDropdown = document.getElementById('kecamatan');
-        districtDropdown.value = umkm.kecamatan.id;
-        
-        // Trigger change event untuk memuat kelurahan
-        districtDropdown.dispatchEvent(event);
-        
-        // Tunggu sebentar untuk memastikan kelurahan sudah dimuat
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Set kelurahan
-        document.getElementById('kelurahan').value = umkm.kelurahan.id;
-        
-        // Show modal
-        umkmModal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
-}
+            isEditMode = true;
+            currentUmkmId = id;
+            const umkm = umkmData.find(u => u.id === id);
+            
+            if (umkm) {
+                document.getElementById('modal-title').textContent = 'Edit Data UMKM';
+                document.getElementById('umkm-id').value = umkm.id;
+                document.getElementById('nama-umkm').value = umkm.nama;
+                document.getElementById('pemilik').value = umkm.pemilik;
+                document.getElementById('alamat').value = umkm.alamat;
+                document.getElementById('maps').value = umkm.maps || '';
+                document.getElementById('keterangan').value = umkm.keterangan || '';
+                
+                // Set status
+                document.querySelector(`input[name="status-halal"][value="${umkm.status}"]`).checked = true;
+                
+                // Load provinsi data
+                const provinceDropdown = document.getElementById('provinsi');
+                provinceDropdown.value = umkm.provinsi.id;
+                
+                // Trigger change event untuk memuat kabupaten
+                const event = new Event('change');
+                provinceDropdown.dispatchEvent(event);
+                
+                // Tunggu sebentar untuk memastikan kabupaten sudah dimuat
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Set kabupaten
+                const regencyDropdown = document.getElementById('kabupaten');
+                regencyDropdown.value = umkm.kabupaten.id;
+                
+                // Trigger change event untuk memuat kecamatan
+                regencyDropdown.dispatchEvent(event);
+                
+                // Tunggu sebentar untuk memastikan kecamatan sudah dimuat
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Set kecamatan
+                const districtDropdown = document.getElementById('kecamatan');
+                districtDropdown.value = umkm.kecamatan.id;
+                
+                // Trigger change event untuk memuat kelurahan
+                districtDropdown.dispatchEvent(event);
+                
+                // Tunggu sebentar untuk memastikan kelurahan sudah dimuat
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Set kelurahan
+                document.getElementById('kelurahan').value = umkm.kelurahan.id;
+                
+                // Show modal
+                umkmModal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
         function viewUmkm(id) {
             const umkm = umkmData.find(u => u.id === id);
             
@@ -2001,99 +2001,100 @@
         }
 
         async function saveUmkm() {
-    const nama = document.getElementById('nama-umkm').value;
-    const pemilik = document.getElementById('pemilik').value;
-    const provinsiId = document.getElementById('provinsi').value;
-    const provinsiName = document.getElementById('provinsi').options[document.getElementById('provinsi').selectedIndex].text;
-    const kabupatenId = document.getElementById('kabupaten').value;
-    const kabupatenName = document.getElementById('kabupaten').options[document.getElementById('kabupaten').selectedIndex].text;
-    const kecamatanId = document.getElementById('kecamatan').value;
-    const kecamatanName = document.getElementById('kecamatan').options[document.getElementById('kecamatan').selectedIndex].text;
-    const kelurahanId = document.getElementById('kelurahan').value;
-    const kelurahanName = document.getElementById('kelurahan').options[document.getElementById('kelurahan').selectedIndex].text;
-    const alamat = document.getElementById('alamat').value;
-    const maps = document.getElementById('maps').value;
-    const status = document.querySelector('input[name="status-halal"]:checked')?.value;
-    const keterangan = document.getElementById('keterangan').value;
-    
-    if (!nama || !pemilik || !provinsiId || !kabupatenId || !kecamatanId || !kelurahanId || !alamat || !status) {
-        alert('Harap isi semua field yang wajib diisi!');
-        return;
-    }
-    
-    const umkm = {
-        nama,
-        pemilik,
-        provinsi: { id: provinsiId, name: provinsiName },
-        kabupaten: { id: kabupatenId, name: kabupatenName },
-        kecamatan: { id: kecamatanId, name: kecamatanName },
-        kelurahan: { id: kelurahanId, name: kelurahanName },
-        alamat,
-        maps,
-        status,
-        keterangan,
-        tanggalDaftar: isEditMode ? umkmData.find(u => u.id === currentUmkmId).tanggalDaftar : new Date().toISOString()
-    };
-    
-    try {
-        if (isEditMode) {
-            // Update data yang ada
-            await database.ref(`umkm/${currentUmkmId}`).update(umkm);
-            showToast('Data UMKM berhasil diperbarui');
-        } else {
-            // Tambah data baru
-            const newRef = database.ref('umkm').push();
-            umkm.id = newRef.key;
-            await newRef.set(umkm);
-            showToast('Data UMKM berhasil ditambahkan');
-        }
-        
-        // Close modal
-        umkmModal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    } catch (error) {
-        console.error('Error saving data:', error);
-        showToast('Gagal menyimpan data', 'error');
-        
-        // Fallback ke localStorage jika Firebase gagal
-        if (isEditMode) {
-            const index = umkmData.findIndex(u => u.id === currentUmkmId);
-            if (index !== -1) {
-                umkmData[index] = umkm;
+            const nama = document.getElementById('nama-umkm').value;
+            const pemilik = document.getElementById('pemilik').value;
+            const provinsiId = document.getElementById('provinsi').value;
+            const provinsiName = document.getElementById('provinsi').options[document.getElementById('provinsi').selectedIndex].text;
+            const kabupatenId = document.getElementById('kabupaten').value;
+            const kabupatenName = document.getElementById('kabupaten').options[document.getElementById('kabupaten').selectedIndex].text;
+            const kecamatanId = document.getElementById('kecamatan').value;
+            const kecamatanName = document.getElementById('kecamatan').options[document.getElementById('kecamatan').selectedIndex].text;
+            const kelurahanId = document.getElementById('kelurahan').value;
+            const kelurahanName = document.getElementById('kelurahan').options[document.getElementById('kelurahan').selectedIndex].text;
+            const alamat = document.getElementById('alamat').value;
+            const maps = document.getElementById('maps').value;
+            const status = document.querySelector('input[name="status-halal"]:checked')?.value;
+            const keterangan = document.getElementById('keterangan').value;
+            
+            if (!nama || !pemilik || !provinsiId || !kabupatenId || !kecamatanId || !kelurahanId || !alamat || !status) {
+                alert('Harap isi semua field yang wajib diisi!');
+                return;
             }
-        } else {
-            const newId = umkmData.length > 0 ? Math.max(...umkmData.map(u => parseInt(u.id))) + 1 : 1;
-            umkm.id = newId.toString();
-            umkmData.push(umkm);
+            
+            const umkm = {
+                nama,
+                pemilik,
+                provinsi: { id: provinsiId, name: provinsiName },
+                kabupaten: { id: kabupatenId, name: kabupatenName },
+                kecamatan: { id: kecamatanId, name: kecamatanName },
+                kelurahan: { id: kelurahanId, name: kelurahanName },
+                alamat,
+                maps,
+                status,
+                keterangan,
+                tanggalDaftar: isEditMode ? umkmData.find(u => u.id === currentUmkmId).tanggalDaftar : new Date().toISOString().split('T')[0]
+            };
+            
+            try {
+                if (isEditMode) {
+                    umkm.id = currentUmkmId;
+                    await database.ref(`umkm/${currentUmkmId}`).update(umkm);
+                } else {
+                    const newRef = database.ref('umkm').push();
+                    umkm.id = newRef.key;
+                    await newRef.set(umkm);
+                }
+                
+                // Update UI akan otomatis dilakukan oleh realtime listener
+                
+                // Close modal
+                umkmModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            } catch (error) {
+                console.error('Error saving data:', error);
+                alert('Gagal menyimpan data ke server. Data akan disimpan secara lokal.');
+                
+                // Simpan ke localStorage sebagai fallback
+                if (isEditMode) {
+                    const index = umkmData.findIndex(u => u.id === currentUmkmId);
+                    if (index !== -1) {
+                        umkmData[index] = umkm;
+                    }
+                } else {
+                    const newId = umkmData.length > 0 ? Math.max(...umkmData.map(u => parseInt(u.id))) + 1 : 1;
+                    umkm.id = newId.toString();
+                    umkmData.push(umkm);
+                }
+                
+                localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                updateUI();
+                
+                // Close modal
+                umkmModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
         }
-        
-        localStorage.setItem('umkmData', JSON.stringify(umkmData));
-        updateUI();
-        
-        // Close modal
-        umkmModal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-}
+
         async function deleteUmkm() {
-    try {
-        await database.ref(`umkm/${currentUmkmId}`).remove();
-        showToast('Data UMKM berhasil dihapus');
-    } catch (error) {
-        console.error('Error deleting data:', error);
-        showToast('Gagal menghapus data', 'error');
-        
-        // Fallback ke localStorage jika Firebase gagal
-        umkmData = umkmData.filter(u => u.id !== currentUmkmId);
-        localStorage.setItem('umkmData', JSON.stringify(umkmData));
-        updateUI();
-    }
-    
-    // Close modal
-    deleteModal.style.display = 'none';
-    document.body.style.overflow = 'auto';
-    currentUmkmId = null;
-}
+            try {
+                await database.ref(`umkm/${currentUmkmId}`).remove();
+                // Update UI akan otomatis dilakukan oleh realtime listener
+            } catch (error) {
+                console.error('Error deleting data:', error);
+                alert('Gagal menghapus data dari server. Data akan dihapus secara lokal.');
+                
+                // Hapus dari localStorage sebagai fallback
+                umkmData = umkmData.filter(u => u.id !== currentUmkmId);
+                localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                updateUI();
+            }
+            
+            // Close modal
+            deleteModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            currentUmkmId = null;
+        }
+
         // Initialize event listeners
         function initEventListeners() {
             // Add UMKM buttons
