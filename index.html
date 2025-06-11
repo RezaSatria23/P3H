@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Halal UMKM Tracker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <style>
         :root {
             --primary: #2c786c;
@@ -1310,6 +1314,20 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWR8Ir2dp1DS69NAk7-9rvwPi4ns1TRqA",
+            authDomain: "ppph-reza.firebaseapp.com",
+            projectId: "ppph-reza",
+            storageBucket: "ppph-reza.firebasestorage.app",
+            messagingSenderId: "452147916822",
+            appId: "1:452147916822:web:aa5b17f7df6f11278b4537"
+        };
+        
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
         // Data Storage
         let umkmData = JSON.parse(localStorage.getItem('umkmData')) || [];
         let provincesData = [];
@@ -1327,17 +1345,95 @@
         const deleteModal = document.getElementById('delete-modal');
         let currentUmkmId = null;
         let isEditMode = false;
+        let umkmChart = null;
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             initClock();
             initMenu();
-            loadUmkmData();
-            updateSummaryCards();
+            initFirebase();
             initEventListeners();
             initChart();
             initRegionDropdowns();
         });
+
+        // Inisialisasi Firebase
+        async function initFirebase() {
+            try {
+                // Login anonymous
+                await auth.signInAnonymously();
+                
+                // Setup realtime listener
+                setupRealtimeListener();
+                
+                // Load initial data
+                await loadInitialData();
+            } catch (error) {
+                console.error('Firebase init error:', error);
+                // Fallback ke localStorage jika Firebase gagal
+                loadFromLocalStorage();
+            }
+        }
+
+        // Setup realtime listener
+        function setupRealtimeListener() {
+            database.ref('umkm').on('value', (snapshot) => {
+                const data = snapshot.val();
+                umkmData = data ? Object.keys(data).map(key => ({ 
+                    id: key, 
+                    ...data[key] 
+                })) : [];
+                
+                // Update UI
+                updateUI();
+                
+                // Simpan ke localStorage sebagai cache offline
+                localStorage.setItem('umkmData', JSON.stringify(umkmData));
+            });
+        }
+
+        // Load initial data
+        async function loadInitialData() {
+            try {
+                const snapshot = await database.ref('umkm').once('value');
+                const data = snapshot.val();
+                umkmData = data ? Object.keys(data).map(key => ({ 
+                    id: key, 
+                    ...data[key] 
+                })) : [];
+                
+                // Jika tidak ada data di Firebase, coba load dari localStorage
+                if (umkmData.length === 0) {
+                    loadFromLocalStorage();
+                } else {
+                    // Simpan ke localStorage sebagai cache
+                    localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                }
+                
+                updateUI();
+            } catch (error) {
+                console.error('Error loading initial data:', error);
+                loadFromLocalStorage();
+            }
+        }
+
+        // Load dari localStorage
+        function loadFromLocalStorage() {
+            const localData = localStorage.getItem('umkmData');
+            umkmData = localData ? JSON.parse(localData) : [];
+            updateUI();
+        }
+
+        // Update semua UI
+        function updateUI() {
+            updateSummaryCards();
+            renderUmkmTable();
+            renderRecentUmkmTable();
+            renderCertificationTable();
+            updateStats();
+            updateChart();
+        }
+
 
         // Realtime Clock
         function initClock() {
@@ -1411,7 +1507,6 @@
             });
         }
 
-
        function switchPage(pageId) {
             contentPages.forEach(page => {
                 page.classList.remove('active');
@@ -1425,6 +1520,8 @@
                         renderCertificationTable();
                     } else if (pageId === 'stats') {
                         updateStats();
+                    } else if (pageId === 'map') {
+                        initMap();
                     }
                 }
             });
@@ -1515,6 +1612,26 @@
                     villageDropdown.disabled = false;
                 }
             });
+            
+            // Isi filter kecamatan
+            updateKecamatanFilter();
+        }
+
+        // Update filter kecamatan
+        function updateKecamatanFilter() {
+            const kecamatanFilter = document.getElementById('kecamatan-filter');
+            const mapKecamatanFilter = document.getElementById('map-kecamatan-filter');
+            
+            // Buat daftar kecamatan unik
+            const uniqueDistricts = [...new Set(umkmData.map(umkm => umkm.kecamatan?.name).filter(Boolean))];
+            
+            kecamatanFilter.innerHTML = '<option value="">Semua Kecamatan</option>';
+            mapKecamatanFilter.innerHTML = '<option value="">Semua Kecamatan</option>';
+            
+            uniqueDistricts.forEach(district => {
+                kecamatanFilter.innerHTML += `<option value="${district}">${district}</option>`;
+                mapKecamatanFilter.innerHTML += `<option value="${district}">${district}</option>`;
+            });
         }
 
         // Load UMKM data
@@ -1570,21 +1687,21 @@
             // Add event listeners to action buttons
             document.querySelectorAll('#umkm-table .view').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const umkmId = parseInt(this.closest('tr').getAttribute('data-id'));
+                    const umkmId = this.closest('tr').getAttribute('data-id');
                     viewUmkm(umkmId);
                 });
             });
             
             document.querySelectorAll('#umkm-table .edit').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const umkmId = parseInt(this.closest('tr').getAttribute('data-id'));
+                    const umkmId = this.closest('tr').getAttribute('data-id');
                     editUmkm(umkmId);
                 });
             });
             
             document.querySelectorAll('#umkm-table .delete').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const umkmId = parseInt(this.closest('tr').getAttribute('data-id'));
+                    const umkmId = this.closest('tr').getAttribute('data-id');
                     const umkmName = this.closest('tr').querySelector('td:first-child').textContent;
                     confirmDelete(umkmId, umkmName);
                 });
@@ -1615,14 +1732,14 @@
             // Add event listeners to action buttons
             document.querySelectorAll('#recent-umkm-table .view').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const umkmId = parseInt(this.closest('tr').getAttribute('data-id'));
+                    const umkmId = this.closest('tr').getAttribute('data-id');
                     viewUmkm(umkmId);
                 });
             });
             
             document.querySelectorAll('#recent-umkm-table .edit').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const umkmId = parseInt(this.closest('tr').getAttribute('data-id'));
+                    const umkmId = this.closest('tr').getAttribute('data-id');
                     editUmkm(umkmId);
                 });
             });
@@ -1656,14 +1773,14 @@
             // Add event listeners to action buttons
             document.querySelectorAll('#certification-table .view').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const umkmId = parseInt(this.closest('tr').getAttribute('data-id'));
+                    const umkmId = this.closest('tr').getAttribute('data-id');
                     viewUmkm(umkmId);
                 });
             });
             
             document.querySelectorAll('#certification-table .edit').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const umkmId = parseInt(this.closest('tr').getAttribute('data-id'));
+                    const umkmId = this.closest('tr').getAttribute('data-id');
                     editUmkm(umkmId);
                 });
             });
@@ -1710,6 +1827,7 @@
         }
 
         function formatDate(dateString) {
+            if (!dateString) return '-';
             const options = { year: 'numeric', month: 'long', day: 'numeric' };
             return new Date(dateString).toLocaleDateString('id-ID', options);
         }
@@ -1740,7 +1858,7 @@
             document.body.style.overflow = 'hidden';
         }
 
-        async function editUmkm(id) {
+         async function editUmkm(id) {
             isEditMode = true;
             currentUmkmId = id;
             const umkm = umkmData.find(u => u.id === id);
@@ -1831,9 +1949,7 @@
                 if (umkm.maps) {
                     let embedUrl;
                     
-                    // Jika berupa link share Google Maps
                     if (umkm.maps.includes('goo.gl/maps') || umkm.maps.includes('google.com/maps')) {
-                        // Coba ekstrak parameter 'q' yang berisi alamat/koordinat
                         try {
                             const urlObj = new URL(umkm.maps);
                             const qParam = urlObj.searchParams.get('q');
@@ -1841,18 +1957,14 @@
                             if (qParam) {
                                 embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(qParam)}&output=embed`;
                             } else {
-                                // Jika tidak ada parameter q, gunakan URL langsung
                                 embedUrl = umkm.maps.replace('/maps/', '/maps/embed/');
                             }
                         } catch (e) {
-                            // Jika parsing URL gagal, gunakan alamat UMKM
                             embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(umkm.alamat)}&output=embed`;
                         }
                     } else if (umkm.maps.includes('@')) {
-                        // Jika berisi koordinat (format @lat,lng)
                         embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(umkm.maps)}&output=embed`;
                     } else {
-                        // Anggap sebagai alamat biasa
                         embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(umkm.maps)}&output=embed`;
                     }
                     
@@ -1888,7 +2000,7 @@
             document.body.style.overflow = 'hidden';
         }
 
-        function saveUmkm() {
+        async function saveUmkm() {
             const nama = document.getElementById('nama-umkm').value;
             const pemilik = document.getElementById('pemilik').value;
             const provinsiId = document.getElementById('provinsi').value;
@@ -1909,61 +2021,73 @@
                 return;
             }
             
-            if (isEditMode) {
-                // Update existing UMKM
-                const index = umkmData.findIndex(u => u.id === currentUmkmId);
-                if (index !== -1) {
-                    umkmData[index] = {
-                        ...umkmData[index],
-                        nama,
-                        pemilik,
-                        provinsi: { id: provinsiId, name: provinsiName },
-                        kabupaten: { id: kabupatenId, name: kabupatenName },
-                        kecamatan: { id: kecamatanId, name: kecamatanName },
-                        kelurahan: { id: kelurahanId, name: kelurahanName },
-                        alamat,
-                        maps,
-                        status,
-                        keterangan
-                    };
+            const umkm = {
+                nama,
+                pemilik,
+                provinsi: { id: provinsiId, name: provinsiName },
+                kabupaten: { id: kabupatenId, name: kabupatenName },
+                kecamatan: { id: kecamatanId, name: kecamatanName },
+                kelurahan: { id: kelurahanId, name: kelurahanName },
+                alamat,
+                maps,
+                status,
+                keterangan,
+                tanggalDaftar: isEditMode ? umkmData.find(u => u.id === currentUmkmId).tanggalDaftar : new Date().toISOString().split('T')[0]
+            };
+            
+            try {
+                if (isEditMode) {
+                    umkm.id = currentUmkmId;
+                    await database.ref(`umkm/${currentUmkmId}`).update(umkm);
+                } else {
+                    const newRef = database.ref('umkm').push();
+                    umkm.id = newRef.key;
+                    await newRef.set(umkm);
                 }
-            } else {
-                // Add new UMKM
-                const newId = umkmData.length > 0 ? Math.max(...umkmData.map(u => u.id)) + 1 : 1;
-                const today = new Date().toISOString().split('T')[0];
                 
-                umkmData.push({
-                    id: newId,
-                    nama,
-                    pemilik,
-                    provinsi: { id: provinsiId, name: provinsiName },
-                    kabupaten: { id: kabupatenId, name: kabupatenName },
-                    kecamatan: { id: kecamatanId, name: kecamatanName },
-                    kelurahan: { id: kelurahanId, name: kelurahanName },
-                    alamat,
-                    maps,
-                    status,
-                    keterangan,
-                    tanggalDaftar: today
-                });
+                // Update UI akan otomatis dilakukan oleh realtime listener
+                
+                // Close modal
+                umkmModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            } catch (error) {
+                console.error('Error saving data:', error);
+                alert('Gagal menyimpan data ke server. Data akan disimpan secara lokal.');
+                
+                // Simpan ke localStorage sebagai fallback
+                if (isEditMode) {
+                    const index = umkmData.findIndex(u => u.id === currentUmkmId);
+                    if (index !== -1) {
+                        umkmData[index] = umkm;
+                    }
+                } else {
+                    const newId = umkmData.length > 0 ? Math.max(...umkmData.map(u => parseInt(u.id))) + 1 : 1;
+                    umkm.id = newId.toString();
+                    umkmData.push(umkm);
+                }
+                
+                localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                updateUI();
+                
+                // Close modal
+                umkmModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
             }
-            
-            saveUmkmData();
-            renderUmkmTable();
-            renderRecentUmkmTable();
-            renderCertificationTable();
-            
-            // Close modal
-            umkmModal.style.display = 'none';
-            document.body.style.overflow = 'auto';
         }
 
-        function deleteUmkm() {
-            umkmData = umkmData.filter(u => u.id !== currentUmkmId);
-            saveUmkmData();
-            renderUmkmTable();
-            renderRecentUmkmTable();
-            renderCertificationTable();
+        async function deleteUmkm() {
+            try {
+                await database.ref(`umkm/${currentUmkmId}`).remove();
+                // Update UI akan otomatis dilakukan oleh realtime listener
+            } catch (error) {
+                console.error('Error deleting data:', error);
+                alert('Gagal menghapus data dari server. Data akan dihapus secara lokal.');
+                
+                // Hapus dari localStorage sebagai fallback
+                umkmData = umkmData.filter(u => u.id !== currentUmkmId);
+                localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                updateUI();
+            }
             
             // Close modal
             deleteModal.style.display = 'none';
@@ -2021,26 +2145,24 @@
                 const mapPreview = document.getElementById('map-preview');
                 
                 if (mapUrl) {
-                    // Ekstrak koordinat atau alamat dari URL
                     let embedUrl;
                     
-                    // Jika berupa link share Google Maps
                     if (mapUrl.includes('goo.gl/maps') || mapUrl.includes('google.com/maps')) {
-                        // Coba ekstrak parameter 'q' yang berisi alamat/koordinat
-                        const urlObj = new URL(mapUrl);
-                        const qParam = urlObj.searchParams.get('q');
-                        
-                        if (qParam) {
-                            embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(qParam)}&output=embed`;
-                        } else {
-                            // Jika tidak ada parameter q, gunakan URL langsung
-                            embedUrl = mapUrl.replace('/maps/', '/maps/embed/');
+                        try {
+                            const urlObj = new URL(mapUrl);
+                            const qParam = urlObj.searchParams.get('q');
+                            
+                            if (qParam) {
+                                embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(qParam)}&output=embed`;
+                            } else {
+                                embedUrl = mapUrl.replace('/maps/', '/maps/embed/');
+                            }
+                        } catch (e) {
+                            embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapUrl)}&output=embed`;
                         }
                     } else if (mapUrl.includes('@')) {
-                        // Jika berisi koordinat (format @lat,lng)
                         embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapUrl)}&output=embed`;
                     } else {
-                        // Anggap sebagai alamat biasa
                         embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapUrl)}&output=embed`;
                     }
                     
@@ -2064,14 +2186,15 @@
                 }
             });
 
-            // Tambahkan di dalam fungsi initEventListeners():
+            // Theme switcher
             document.getElementById('app-theme').addEventListener('change', function() {
                 applyTheme(this.value);
             });
 
+            // Backup data
             document.getElementById('backup-data').addEventListener('click', backupData);
 
-            // Tambahkan di akhir fungsi initEventListeners() untuk memuat tema yang disimpan:
+            // Load saved theme
             const savedTheme = localStorage.getItem('appTheme') || 'default';
             document.getElementById('app-theme').value = savedTheme;
             setTimeout(() => {
@@ -2099,9 +2222,24 @@
                 filterCertificationTable();
             });
             
+            document.getElementById('map-search').addEventListener('input', function() {
+                initMap();
+            });
+            
+            document.getElementById('map-kecamatan-filter').addEventListener('change', function() {
+                initMap();
+            });
+            
+            document.getElementById('map-status-filter').addEventListener('change', function() {
+                initMap();
+            });
+            
             // Export buttons
             document.getElementById('export-csv').addEventListener('click', exportToCSV);
             document.getElementById('export-excel').addEventListener('click', exportToExcel);
+            
+            // Import data
+            document.getElementById('import-data').addEventListener('click', importData);
         }
 
         // Filter UMKM table
@@ -2113,7 +2251,7 @@
             const filteredData = umkmData.filter(umkm => {
                 const matchesSearch = umkm.nama.toLowerCase().includes(searchTerm) || 
                                      umkm.pemilik.toLowerCase().includes(searchTerm);
-                const matchesKecamatan = kecamatanFilter ? umkm.kecamatan.name === kecamatanFilter : true;
+                const matchesKecamatan = kecamatanFilter ? umkm.kecamatan?.name === kecamatanFilter : true;
                 const matchesStatus = statusFilter ? umkm.status === statusFilter : true;
                 
                 return matchesSearch && matchesKecamatan && matchesStatus;
@@ -2144,10 +2282,10 @@
             const rows = umkmData.map(umkm => [
                 `"${umkm.nama}"`,
                 `"${umkm.pemilik}"`,
-                `"${umkm.provinsi.name}"`,
-                `"${umkm.kabupaten.name}"`,
-                `"${umkm.kecamatan.name}"`,
-                `"${umkm.kelurahan.name}"`,
+                `"${umkm.provinsi?.name || ''}"`,
+                `"${umkm.kabupaten?.name || ''}"`,
+                `"${umkm.kecamatan?.name || ''}"`,
+                `"${umkm.kelurahan?.name || ''}"`,
                 `"${umkm.alamat}"`,
                 `"${umkm.status === 'certified' ? 'Bersertifikat' : umkm.status === 'process' ? 'Dalam Proses' : 'Belum'}"`,
                 `"${umkm.keterangan || ''}"`,
@@ -2168,26 +2306,23 @@
         }
 
         function exportToExcel() {
-            // Format data untuk Excel
             const headers = ['Nama UMKM', 'Pemilik', 'Provinsi', 'Kabupaten/Kota', 'Kecamatan', 'Kelurahan', 'Alamat', 'Status Halal', 'Keterangan', 'Tanggal Daftar'];
             const data = umkmData.map(umkm => [
                 umkm.nama,
                 umkm.pemilik,
-                umkm.provinsi.name,
-                umkm.kabupaten.name,
-                umkm.kecamatan.name,
-                umkm.kelurahan.name,
+                umkm.provinsi?.name || '',
+                umkm.kabupaten?.name || '',
+                umkm.kecamatan?.name || '',
+                umkm.kelurahan?.name || '',
                 umkm.alamat,
                 umkm.status === 'certified' ? 'Bersertifikat' : umkm.status === 'process' ? 'Dalam Proses' : 'Belum',
                 umkm.keterangan || '',
                 umkm.tanggalDaftar
             ]);
             
-            // Buat worksheet
             let csvContent = headers.join("\t") + "\n" + 
                 data.map(row => row.join("\t")).join("\n");
             
-            // Buat file Excel (format tab-delimited)
             const blob = new Blob([csvContent], { type: 'text/tsv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
@@ -2218,9 +2353,9 @@
             const ctx = document.getElementById('district-chart').getContext('2d');
             
             // Buat daftar kecamatan unik dari data UMKM
-            const uniqueDistricts = [...new Set(umkmData.map(umkm => umkm.kecamatan.name))];
+            const uniqueDistricts = [...new Set(umkmData.map(umkm => umkm.kecamatan?.name).filter(Boolean))];
             
-            window.umkmChart = new Chart(ctx, {
+            umkmChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: uniqueDistricts,
@@ -2229,21 +2364,21 @@
                             label: 'Bersertifikat',
                             backgroundColor: '#28a745',
                             data: uniqueDistricts.map(district => 
-                                umkmData.filter(u => u.kecamatan.name === district && u.status === 'certified').length
+                                umkmData.filter(u => u.kecamatan?.name === district && u.status === 'certified').length
                             )
                         },
                         {
                             label: 'Dalam Proses',
                             backgroundColor: '#ffc107',
                             data: uniqueDistricts.map(district => 
-                                umkmData.filter(u => u.kecamatan.name === district && u.status === 'process').length
+                                umkmData.filter(u => u.kecamatan?.name === district && u.status === 'process').length
                             )
                         },
                         {
                             label: 'Belum',
                             backgroundColor: '#dc3545',
                             data: uniqueDistricts.map(district => 
-                                umkmData.filter(u => u.kecamatan.name === district && u.status === 'not-certified').length
+                                umkmData.filter(u => u.kecamatan?.name === district && u.status === 'not-certified').length
                             )
                         }
                     ]
@@ -2264,83 +2399,73 @@
         }
 
         function updateChart() {
-            if (window.umkmChart) {
+            if (umkmChart) {
                 // Buat daftar kecamatan unik dari data UMKM
-                const uniqueDistricts = [...new Set(umkmData.map(umkm => umkm.kecamatan.name))];
+                const uniqueDistricts = [...new Set(umkmData.map(umkm => umkm.kecamatan?.name).filter(Boolean))];
                 
                 // Update data chart
-                window.umkmChart.data.labels = uniqueDistricts;
-                window.umkmChart.data.datasets[0].data = uniqueDistricts.map(district => 
-                    umkmData.filter(u => u.kecamatan.name === district && u.status === 'certified').length
+                umkmChart.data.labels = uniqueDistricts;
+                umkmChart.data.datasets[0].data = uniqueDistricts.map(district => 
+                    umkmData.filter(u => u.kecamatan?.name === district && u.status === 'certified').length
                 );
-                window.umkmChart.data.datasets[1].data = uniqueDistricts.map(district => 
-                    umkmData.filter(u => u.kecamatan.name === district && u.status === 'process').length
+                umkmChart.data.datasets[1].data = uniqueDistricts.map(district => 
+                    umkmData.filter(u => u.kecamatan?.name === district && u.status === 'process').length
                 );
-                window.umkmChart.data.datasets[2].data = uniqueDistricts.map(district => 
-                    umkmData.filter(u => u.kecamatan.name === district && u.status === 'not-certified').length
+                umkmChart.data.datasets[2].data = uniqueDistricts.map(district => 
+                    umkmData.filter(u => u.kecamatan?.name === district && u.status === 'not-certified').length
                 );
                 
-                window.umkmChart.update();
+                umkmChart.update();
             }
         }
 
         // Initialize map
         function initMap() {
             const mapContainer = document.getElementById('umkm-map');
-            
-            // Clear previous map
-            mapContainer.innerHTML = '';
-            
-            // Create a simple map visualization (in a real app, you would use Google Maps API or similar)
-            const mapContent = document.createElement('div');
-            mapContent.style.height = '100%';
-            mapContent.style.display = 'flex';
-            mapContent.style.flexDirection = 'column';
-            mapContent.style.alignItems = 'center';
-            mapContent.style.justifyContent = 'center';
-            mapContent.style.padding = '20px';
-            mapContent.style.textAlign = 'center';
-            
-            const mapIcon = document.createElement('i');
-            mapIcon.className = 'fas fa-map-marked-alt';
-            mapIcon.style.fontSize = '3rem';
-            mapIcon.style.color = 'var(--primary)';
-            mapIcon.style.marginBottom = '15px';
-            
-            const mapTitle = document.createElement('h3');
-            mapTitle.textContent = 'Peta Lokasi UMKM';
-            mapTitle.style.color = 'var(--secondary)';
-            mapTitle.style.marginBottom = '10px';
-            
-            const mapDescription = document.createElement('p');
-            mapDescription.textContent = 'Berikut adalah lokasi UMKM berdasarkan data:';
-            mapDescription.style.marginBottom = '20px';
-            mapDescription.style.color = '#666';
-            
-            // Create a simple list of UMKM locations
-            const umkmList = document.createElement('div');
-            umkmList.style.width = '100%';
-            umkmList.style.maxHeight = '300px';
-            umkmList.style.overflowY = 'auto';
-            
             const filteredData = filterMapData();
             
+            mapContainer.innerHTML = '';
+            
             if (filteredData.length === 0) {
-                umkmList.innerHTML = '<p>Tidak ada data UMKM yang sesuai dengan filter</p>';
-            } else {
-                umkmList.innerHTML = filteredData.map(umkm => `
-                    <div style="padding: 10px; border-bottom: 1px solid #eee; text-align: left;">
-                        <strong>${umkm.nama}</strong><br>
-                        <small>${umkm.alamat}, ${umkm.kelurahan.name}, ${umkm.kecamatan.name}</small><br>
-                        ${getStatusBadge(umkm.status)}
+                mapContainer.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #777;">
+                        <i class="fas fa-map-marked-alt" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <p>Tidak ada data UMKM yang sesuai dengan filter</p>
                     </div>
-                `).join('');
+                `;
+                return;
             }
             
-            mapContent.appendChild(mapIcon);
-            mapContent.appendChild(mapTitle);
-            mapContent.appendChild(mapDescription);
-            mapContent.appendChild(umkmList);
+            // Create a simple list view for map page
+            const mapContent = document.createElement('div');
+            mapContent.style.height = '100%';
+            mapContent.style.overflowY = 'auto';
+            mapContent.style.padding = '10px';
+            
+            filteredData.forEach(umkm => {
+                const umkmElement = document.createElement('div');
+                umkmElement.style.padding = '10px';
+                umkmElement.style.borderBottom = '1px solid #eee';
+                umkmElement.style.marginBottom = '10px';
+                
+                umkmElement.innerHTML = `
+                    <h3 style="margin-bottom: 5px; color: var(--secondary);">${umkm.nama}</h3>
+                    <p style="margin-bottom: 5px; color: var(--dark);"><i class="fas fa-user"></i> ${umkm.pemilik}</p>
+                    <p style="margin-bottom: 5px; color: var(--dark);">
+                        <i class="fas fa-map-marker-alt"></i> 
+                        ${umkm.alamat}, ${umkm.kelurahan?.name || ''}, ${umkm.kecamatan?.name || ''}
+                    </p>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        ${getStatusBadge(umkm.status)}
+                        <button class="btn btn-primary" style="padding: 5px 10px; font-size: 0.8rem;" 
+                            onclick="viewUmkm('${umkm.id}')">
+                            <i class="fas fa-eye"></i> Lihat
+                        </button>
+                    </div>
+                `;
+                
+                mapContent.appendChild(umkmElement);
+            });
             
             mapContainer.appendChild(mapContent);
         }
@@ -2353,12 +2478,13 @@
             return umkmData.filter(umkm => {
                 const matchesSearch = umkm.nama.toLowerCase().includes(searchTerm) || 
                                      umkm.pemilik.toLowerCase().includes(searchTerm);
-                const matchesKecamatan = kecamatanFilter ? umkm.kecamatan.name === kecamatanFilter : true;
+                const matchesKecamatan = kecamatanFilter ? umkm.kecamatan?.name === kecamatanFilter : true;
                 const matchesStatus = statusFilter ? umkm.status === statusFilter : true;
                 
                 return matchesSearch && matchesKecamatan && matchesStatus;
             });
         }
+
         // Fungsi untuk mengubah tema
         function applyTheme(theme) {
         const body = document.body;
@@ -2419,17 +2545,55 @@
                 a.click();
                 document.body.removeChild(a);
                 
-                // Bebaskan memori setelah 1 menit
                 setTimeout(() => {
                     URL.revokeObjectURL(url);
                 }, 60000);
                 
-                // Notifikasi sukses
                 alert(`Backup data berhasil dibuat!\nTotal UMKM: ${data.totalUMKM}\nBersertifikat: ${data.certified}\nDalam Proses: ${data.inProcess}\nBelum Bersertifikat: ${data.notCertified}`);
             } catch (error) {
                 console.error('Error creating backup:', error);
                 alert('Gagal membuat backup data. Silakan coba lagi.');
             }
+        }
+
+        // Import data
+        function importData() {
+            const fileInput = document.getElementById('data-import');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Pilih file terlebih dahulu');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (!data.umkmData || !Array.isArray(data.umkmData)) {
+                        throw new Error('Format file tidak valid');
+                    }
+                    
+                    // Hapus semua data yang ada
+                    await database.ref('umkm').remove();
+                    
+                    // Simpan data baru
+                    const batch = {};
+                    data.umkmData.forEach(umkm => {
+                        const newRef = database.ref('umkm').push();
+                        batch[newRef.key] = umkm;
+                    });
+                    
+                    await database.ref('umkm').update(batch);
+                    
+                    alert(`Data berhasil diimpor! Total UMKM: ${data.umkmData.length}`);
+                } catch (error) {
+                    console.error('Import error:', error);
+                    alert('Gagal mengimpor data. Pastikan file backup valid.');
+                }
+            };
+            reader.readAsText(file);
         }
     </script>
 </body>
