@@ -1325,17 +1325,24 @@
             appId: "1:452147916822:web:aa5b17f7df6f11278b4537"
           };
         
-        // Inisialisasi Firebase
+         // Inisialisasi Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const auth = firebase.auth();
 
+        // Data Storage
         // Data Storage
         let umkmData = [];
         let provincesData = [];
         let regenciesData = [];
         let districtsData = [];
         let villagesData = [];
+        let isOnline = navigator.onLine;
+        let pendingSync = {
+            adds: [],
+            updates: [],
+            deletes: []
+        };
 
         // DOM Elements
         const menuItems = document.querySelectorAll('.menu-item');
@@ -1348,7 +1355,6 @@
         let currentUmkmId = null;
         let isEditMode = false;
         let umkmChart = null;
-        let isOnline = navigator.onLine;
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -1359,16 +1365,126 @@
             initChart();
             initRegionDropdowns();
             
-            // Monitor koneksi internet
-            window.addEventListener('online', handleConnectionChange);
-            window.addEventListener('offline', handleConnectionChange);
         });
 
         // Handler untuk perubahan koneksi
+        function saveToLocalStorage() {
+            localStorage.setItem('umkmData', JSON.stringify(umkmData));
+            localStorage.setItem('pendingSync', JSON.stringify(pendingSync));
+        }
+
+        // Fungsi untuk memuat data dari localStorage
+        function loadFromLocalStorage() {
+            const localData = localStorage.getItem('umkmData');
+            const syncData = localStorage.getItem('pendingSync');
+            
+            umkmData = localData ? JSON.parse(localData) : [];
+            pendingSync = syncData ? JSON.parse(syncData) : {
+                adds: [],
+                updates: [],
+                deletes: []
+            };
+            
+            updateUI();
+        }
+
+        // Fungsi untuk sinkronisasi data saat online
+        async function syncData() {
+            if (!isOnline) return;
+
+            try {
+                // Proses data yang perlu ditambahkan
+                while (pendingSync.adds.length > 0) {
+                    const umkm = pendingSync.adds[0];
+                    const newRef = database.ref('umkm').push();
+                    await newRef.set(umkm);
+                    
+                    // Hapus dari pendingSync setelah berhasil disimpan
+                    pendingSync.adds.shift();
+                    saveToLocalStorage();
+                }
+
+                // Proses data yang perlu diupdate
+                while (pendingSync.updates.length > 0) {
+                    const umkm = pendingSync.updates[0];
+                    await database.ref(`umkm/${umkm.id}`).update(umkm);
+                    
+                    // Hapus dari pendingSync setelah berhasil diupdate
+                    pendingSync.updates.shift();
+                    saveToLocalStorage();
+                }
+
+                // Proses data yang perlu dihapus
+                while (pendingSync.deletes.length > 0) {
+                    const id = pendingSync.deletes[0];
+                    await database.ref(`umkm/${id}`).remove();
+                    
+                    // Hapus dari pendingSync setelah berhasil dihapus
+                    pendingSync.deletes.shift();
+                    saveToLocalStorage();
+                }
+            } catch (error) {
+                console.error('Error during sync:', error);
+            }
+        }
+
+        async function addUmkmToSystem(umkm) {
+            if (isOnline) {
+                const newRef = database.ref('umkm').push();
+                umkm.id = newRef.key;
+                await newRef.set(umkm);
+            } else {
+                // Jika offline, generate ID sementara
+                umkm.id = 'temp_' + Date.now();
+                pendingSync.adds.push(umkm);
+            }
+            
+            umkmData.push(umkm);
+            saveToLocalStorage();
+            updateUI();
+            
+            if (isOnline) {
+                return umkm.id;
+            } else {
+                return umkm.id; // Mengembalikan ID sementara
+            }
+        }
+
+        // Fungsi untuk mengupdate UMKM
+        async function updateUmkmInSystem(umkm) {
+            if (isOnline) {
+                await database.ref(`umkm/${umkm.id}`).update(umkm);
+            } else {
+                pendingSync.updates.push(umkm);
+            }
+            
+            const index = umkmData.findIndex(u => u.id === umkm.id);
+            if (index !== -1) {
+                umkmData[index] = umkm;
+            }
+            
+            saveToLocalStorage();
+            updateUI();
+        }
+
+        // Fungsi untuk menghapus UMKM
+        async function deleteUmkmFromSystem(id) {
+            if (isOnline) {
+                await database.ref(`umkm/${id}`).remove();
+            } else {
+                pendingSync.deletes.push(id);
+            }
+            
+            umkmData = umkmData.filter(u => u.id !== id);
+            saveToLocalStorage();
+            updateUI();
+        }
+
         function handleConnectionChange() {
             isOnline = navigator.onLine;
+            
             if (isOnline) {
-                syncLocalDataWithFirebase();
+                syncData();
                 console.log('Koneksi internet tersedia. Melakukan sinkronisasi...');
             } else {
                 console.log('Tidak ada koneksi internet. Menggunakan data lokal.');
@@ -1376,26 +1492,34 @@
         }
 
         // Inisialisasi Firebase
-        async function initFirebase() {
+         async function initFirebase() {
             try {
-                // Login anonymous
                 await auth.signInAnonymously();
                 
                 // Setup realtime listener
-                setupRealtimeListener();
+                database.ref('umkm').on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        umkmData = Object.keys(data).map(key => ({ 
+                            id: key, 
+                            ...data[key] 
+                        }));
+                        
+                        // Simpan ke localStorage sebagai cache
+                        saveToLocalStorage();
+                        updateUI();
+                    }
+                });
                 
-                // Cek apakah ada data di localStorage
-                const localData = localStorage.getItem('umkmData');
-                if (localData) {
-                    umkmData = JSON.parse(localData);
-                    updateUI();
+                // Load data awal dari localStorage
+                loadFromLocalStorage();
+                
+                // Jika online, sinkronkan data
+                if (isOnline) {
+                    await syncData();
                 }
-                
-                // Load initial data dari Firebase
-                await loadInitialData();
             } catch (error) {
                 console.error('Firebase init error:', error);
-                // Fallback ke localStorage jika Firebase gagal
                 loadFromLocalStorage();
             }
         }
@@ -2098,100 +2222,40 @@
             };
             
             try {
-                if (isOnline) {
-                    if (isEditMode) {
-                        umkm.id = currentUmkmId;
-                        await database.ref(`umkm/${currentUmkmId}`).update(umkm);
-                    } else {
-                        const newRef = database.ref('umkm').push();
-                        umkm.id = newRef.key;
-                        await newRef.set(umkm);
-                    }
+                if (isEditMode) {
+                    umkm.id = currentUmkmId;
+                    await updateUmkmInSystem(umkm);
                 } else {
-                    // Jika offline, simpan ke localStorage dan antrian sinkronisasi
-                    if (isEditMode) {
-                        umkm.id = currentUmkmId;
-                        const index = umkmData.findIndex(u => u.id === currentUmkmId);
-                        if (index !== -1) {
-                            umkmData[index] = umkm;
-                        }
-                        addToSyncQueue('update', umkm);
-                    } else {
-                        const newId = umkmData.length > 0 ? Math.max(...umkmData.map(u => parseInt(u.id))) + 1 : 1;
-                        umkm.id = newId.toString();
-                        umkmData.push(umkm);
-                        addToSyncQueue('add', umkm);
-                    }
-                    
-                    localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                    await addUmkmToSystem(umkm);
                 }
                 
-                // Update UI
-                updateUI();
-                
-                // Close modal
                 umkmModal.style.display = 'none';
                 document.body.style.overflow = 'auto';
             } catch (error) {
                 console.error('Error saving data:', error);
-                alert('Gagal menyimpan data ke server. Data akan disimpan secara lokal.');
-                
-                // Simpan ke localStorage sebagai fallback
-                if (isEditMode) {
-                    const index = umkmData.findIndex(u => u.id === currentUmkmId);
-                    if (index !== -1) {
-                        umkmData[index] = umkm;
-                    }
-                    addToSyncQueue('update', umkm);
-                } else {
-                    const newId = umkmData.length > 0 ? Math.max(...umkmData.map(u => parseInt(u.id))) + 1 : 1;
-                    umkm.id = newId.toString();
-                    umkmData.push(umkm);
-                    addToSyncQueue('add', umkm);
-                }
-                
-                localStorage.setItem('umkmData', JSON.stringify(umkmData));
-                updateUI();
-                
-                // Close modal
-                umkmModal.style.display = 'none';
-                document.body.style.overflow = 'auto';
+                alert('Gagal menyimpan data: ' + error.message);
             }
         }
 
+        // Fungsi untuk menghapus UMKM (digunakan di form konfirmasi)
         async function deleteUmkm() {
             try {
-                if (isOnline) {
-                    await database.ref(`umkm/${currentUmkmId}`).remove();
-                } else {
-                    // Jika offline, hapus dari localStorage dan tambahkan ke antrian sinkronisasi
-                    umkmData = umkmData.filter(u => u.id !== currentUmkmId);
-                    localStorage.setItem('umkmData', JSON.stringify(umkmData));
-                    addToSyncQueue('delete', currentUmkmId);
-                }
-                
-                // Update UI
-                updateUI();
+                await deleteUmkmFromSystem(currentUmkmId);
+                deleteModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                currentUmkmId = null;
             } catch (error) {
                 console.error('Error deleting data:', error);
-                alert('Gagal menghapus data dari server. Data akan dihapus secara lokal.');
-                
-                // Hapus dari localStorage sebagai fallback
-                umkmData = umkmData.filter(u => u.id !== currentUmkmId);
-                localStorage.setItem('umkmData', JSON.stringify(umkmData));
-                addToSyncQueue('delete', currentUmkmId);
-                
-                updateUI();
+                alert('Gagal menghapus data: ' + error.message);
             }
-            
-            // Close modal
-            deleteModal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-            currentUmkmId = null;
         }
+
 
         // Initialize event listeners
         function initEventListeners() {
+            window.addEventListener('online', handleConnectionChange);
+            window.addEventListener('offline', handleConnectionChange);
+
             // Add UMKM buttons
             document.getElementById('add-umkm-btn').addEventListener('click', addUmkm);
             document.getElementById('add-umkm-btn-2').addEventListener('click', addUmkm);
