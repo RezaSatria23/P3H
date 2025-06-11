@@ -1314,22 +1314,23 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <script>
+        // Konfigurasi Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAWR8Ir2dp1DS69NAk7-9rvwPi4ns1TRqA",
             authDomain: "ppph-reza.firebaseapp.com",
             projectId: "ppph-reza",
-            storageBucket: "ppph-reza.firebasestorage.app",
+            storageBucket: "ppph-reza.appspot.com",
             messagingSenderId: "452147916822",
             appId: "1:452147916822:web:aa5b17f7df6f11278b4537"
         };
         
-        // Initialize Firebase
+        // Inisialisasi Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const auth = firebase.auth();
 
         // Data Storage
-        let umkmData = JSON.parse(localStorage.getItem('umkmData')) || [];
+        let umkmData = [];
         let provincesData = [];
         let regenciesData = [];
         let districtsData = [];
@@ -1346,6 +1347,7 @@
         let currentUmkmId = null;
         let isEditMode = false;
         let umkmChart = null;
+        let isOnline = navigator.onLine;
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -1355,7 +1357,22 @@
             initEventListeners();
             initChart();
             initRegionDropdowns();
+            
+            // Monitor koneksi internet
+            window.addEventListener('online', handleConnectionChange);
+            window.addEventListener('offline', handleConnectionChange);
         });
+
+        // Handler untuk perubahan koneksi
+        function handleConnectionChange() {
+            isOnline = navigator.onLine;
+            if (isOnline) {
+                syncLocalDataWithFirebase();
+                console.log('Koneksi internet tersedia. Melakukan sinkronisasi...');
+            } else {
+                console.log('Tidak ada koneksi internet. Menggunakan data lokal.');
+            }
+        }
 
         // Inisialisasi Firebase
         async function initFirebase() {
@@ -1366,7 +1383,14 @@
                 // Setup realtime listener
                 setupRealtimeListener();
                 
-                // Load initial data
+                // Cek apakah ada data di localStorage
+                const localData = localStorage.getItem('umkmData');
+                if (localData) {
+                    umkmData = JSON.parse(localData);
+                    updateUI();
+                }
+                
+                // Load initial data dari Firebase
                 await loadInitialData();
             } catch (error) {
                 console.error('Firebase init error:', error);
@@ -1379,38 +1403,45 @@
         function setupRealtimeListener() {
             database.ref('umkm').on('value', (snapshot) => {
                 const data = snapshot.val();
-                umkmData = data ? Object.keys(data).map(key => ({ 
-                    id: key, 
-                    ...data[key] 
-                })) : [];
-                
-                // Update UI
-                updateUI();
-                
-                // Simpan ke localStorage sebagai cache offline
-                localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                if (data) {
+                    umkmData = Object.keys(data).map(key => ({ 
+                        id: key, 
+                        ...data[key] 
+                    }));
+                    
+                    // Update UI
+                    updateUI();
+                    
+                    // Simpan ke localStorage sebagai cache offline
+                    localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                }
+            }, (error) => {
+                console.error('Realtime listener error:', error);
+                // Jika error, gunakan data dari localStorage
+                loadFromLocalStorage();
             });
         }
 
-        // Load initial data
+        // Load initial data dari Firebase
         async function loadInitialData() {
             try {
                 const snapshot = await database.ref('umkm').once('value');
                 const data = snapshot.val();
-                umkmData = data ? Object.keys(data).map(key => ({ 
-                    id: key, 
-                    ...data[key] 
-                })) : [];
                 
-                // Jika tidak ada data di Firebase, coba load dari localStorage
-                if (umkmData.length === 0) {
-                    loadFromLocalStorage();
-                } else {
+                if (data) {
+                    umkmData = Object.keys(data).map(key => ({ 
+                        id: key, 
+                        ...data[key] 
+                    }));
+                    
                     // Simpan ke localStorage sebagai cache
                     localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                    
+                    updateUI();
+                } else if (umkmData.length === 0) {
+                    // Jika tidak ada data di Firebase dan localStorage, inisialisasi dengan array kosong
+                    localStorage.setItem('umkmData', JSON.stringify([]));
                 }
-                
-                updateUI();
             } catch (error) {
                 console.error('Error loading initial data:', error);
                 loadFromLocalStorage();
@@ -1424,6 +1455,51 @@
             updateUI();
         }
 
+        // Sinkronisasi data lokal dengan Firebase saat online
+        async function syncLocalDataWithFirebase() {
+            try {
+                const localData = JSON.parse(localStorage.getItem('umkmData') || []);
+                const pendingSync = JSON.parse(localStorage.getItem('pendingSync') || { adds: [], updates: [], deletes: [] });
+                
+                // Proses penambahan data yang tertunda
+                for (const umkm of pendingSync.adds) {
+                    await database.ref(`umkm/${umkm.id}`).set(umkm);
+                }
+                
+                // Proses update data yang tertunda
+                for (const umkm of pendingSync.updates) {
+                    await database.ref(`umkm/${umkm.id}`).update(umkm);
+                }
+                
+                // Proses penghapusan data yang tertunda
+                for (const id of pendingSync.deletes) {
+                    await database.ref(`umkm/${id}`).remove();
+                }
+                
+                // Kosongkan antrian sinkronisasi
+                localStorage.setItem('pendingSync', JSON.stringify({ adds: [], updates: [], deletes: [] }));
+                
+                console.log('Sinkronisasi data lokal dengan Firebase selesai');
+            } catch (error) {
+                console.error('Error syncing local data with Firebase:', error);
+            }
+        }
+
+        // Tambahkan data ke antrian sinkronisasi
+        function addToSyncQueue(type, data) {
+            const pendingSync = JSON.parse(localStorage.getItem('pendingSync')) || { adds: [], updates: [], deletes: [] };
+            
+            if (type === 'add') {
+                pendingSync.adds.push(data);
+            } else if (type === 'update') {
+                pendingSync.updates.push(data);
+            } else if (type === 'delete') {
+                pendingSync.deletes.push(data);
+            }
+            
+            localStorage.setItem('pendingSync', JSON.stringify(pendingSync));
+        }
+
         // Update semua UI
         function updateUI() {
             updateSummaryCards();
@@ -1432,8 +1508,8 @@
             renderCertificationTable();
             updateStats();
             updateChart();
+            updateKecamatanFilter();
         }
-
 
         // Realtime Clock
         function initClock() {
@@ -1507,7 +1583,7 @@
             });
         }
 
-       function switchPage(pageId) {
+        function switchPage(pageId) {
             contentPages.forEach(page => {
                 page.classList.remove('active');
                 if (page.id === `${pageId}-page`) {
@@ -1632,21 +1708,6 @@
                 kecamatanFilter.innerHTML += `<option value="${district}">${district}</option>`;
                 mapKecamatanFilter.innerHTML += `<option value="${district}">${district}</option>`;
             });
-        }
-
-        // Load UMKM data
-        function loadUmkmData() {
-            
-            renderUmkmTable();
-            renderRecentUmkmTable();
-            renderCertificationTable();
-        }
-
-        function saveUmkmData() {
-            localStorage.setItem('umkmData', JSON.stringify(umkmData));
-            updateSummaryCards();
-            updateStats();
-            updateChart();
         }
 
         // Update summary cards
@@ -1858,7 +1919,7 @@
             document.body.style.overflow = 'hidden';
         }
 
-         async function editUmkm(id) {
+        async function editUmkm(id) {
             isEditMode = true;
             currentUmkmId = id;
             const umkm = umkmData.find(u => u.id === id);
@@ -2036,16 +2097,36 @@
             };
             
             try {
-                if (isEditMode) {
-                    umkm.id = currentUmkmId;
-                    await database.ref(`umkm/${currentUmkmId}`).update(umkm);
+                if (isOnline) {
+                    if (isEditMode) {
+                        umkm.id = currentUmkmId;
+                        await database.ref(`umkm/${currentUmkmId}`).update(umkm);
+                    } else {
+                        const newRef = database.ref('umkm').push();
+                        umkm.id = newRef.key;
+                        await newRef.set(umkm);
+                    }
                 } else {
-                    const newRef = database.ref('umkm').push();
-                    umkm.id = newRef.key;
-                    await newRef.set(umkm);
+                    // Jika offline, simpan ke localStorage dan antrian sinkronisasi
+                    if (isEditMode) {
+                        umkm.id = currentUmkmId;
+                        const index = umkmData.findIndex(u => u.id === currentUmkmId);
+                        if (index !== -1) {
+                            umkmData[index] = umkm;
+                        }
+                        addToSyncQueue('update', umkm);
+                    } else {
+                        const newId = umkmData.length > 0 ? Math.max(...umkmData.map(u => parseInt(u.id))) + 1 : 1;
+                        umkm.id = newId.toString();
+                        umkmData.push(umkm);
+                        addToSyncQueue('add', umkm);
+                    }
+                    
+                    localStorage.setItem('umkmData', JSON.stringify(umkmData));
                 }
                 
-                // Update UI akan otomatis dilakukan oleh realtime listener
+                // Update UI
+                updateUI();
                 
                 // Close modal
                 umkmModal.style.display = 'none';
@@ -2060,10 +2141,12 @@
                     if (index !== -1) {
                         umkmData[index] = umkm;
                     }
+                    addToSyncQueue('update', umkm);
                 } else {
                     const newId = umkmData.length > 0 ? Math.max(...umkmData.map(u => parseInt(u.id))) + 1 : 1;
                     umkm.id = newId.toString();
                     umkmData.push(umkm);
+                    addToSyncQueue('add', umkm);
                 }
                 
                 localStorage.setItem('umkmData', JSON.stringify(umkmData));
@@ -2077,8 +2160,17 @@
 
         async function deleteUmkm() {
             try {
-                await database.ref(`umkm/${currentUmkmId}`).remove();
-                // Update UI akan otomatis dilakukan oleh realtime listener
+                if (isOnline) {
+                    await database.ref(`umkm/${currentUmkmId}`).remove();
+                } else {
+                    // Jika offline, hapus dari localStorage dan tambahkan ke antrian sinkronisasi
+                    umkmData = umkmData.filter(u => u.id !== currentUmkmId);
+                    localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                    addToSyncQueue('delete', currentUmkmId);
+                }
+                
+                // Update UI
+                updateUI();
             } catch (error) {
                 console.error('Error deleting data:', error);
                 alert('Gagal menghapus data dari server. Data akan dihapus secara lokal.');
@@ -2086,6 +2178,8 @@
                 // Hapus dari localStorage sebagai fallback
                 umkmData = umkmData.filter(u => u.id !== currentUmkmId);
                 localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                addToSyncQueue('delete', currentUmkmId);
+                
                 updateUI();
             }
             
@@ -2487,42 +2581,42 @@
 
         // Fungsi untuk mengubah tema
         function applyTheme(theme) {
-        const body = document.body;
-        const root = document.documentElement;
-        
-        // Hapus semua class tema sebelumnya
-        body.classList.remove('dark-theme', 'light-theme', 'default-theme');
-        
-        // Tambahkan class tema yang dipilih
-        body.classList.add(`${theme}-theme`);
-        
-        // Update variabel CSS
-        if (theme === 'dark') {
-            root.style.setProperty('--primary', '#3b82f6');  // Biru lebih terang
-            root.style.setProperty('--secondary', '#fffff'); // Biru sedikit lebih gelap
-            root.style.setProperty('--accent', '#f59e0b');   // Oranye
-            root.style.setProperty('--light', '#1e293b');    // Dark blue-gray
-            root.style.setProperty('--dark', '#f8fafc');     // Very light gray untuk teks
-            root.style.setProperty('--success', '#10b981');  // Hijau terang
-            root.style.setProperty('--warning', '#f59e0b');  // Kuning/Oranye
-            root.style.setProperty('--danger', '#ef4444');   // Merah terang
-        } else if (theme === 'light') {
-            root.style.setProperty('--primary', '#2c786c');
-            root.style.setProperty('--secondary', '#004445');
-            root.style.setProperty('--accent', '#f8b400');
-            root.style.setProperty('--light', '#faf5e4');
-            root.style.setProperty('--dark', '#333');
-        } else { // default
-            root.style.setProperty('--primary', '#2c786c');
-            root.style.setProperty('--secondary', '#004445');
-            root.style.setProperty('--accent', '#f8b400');
-            root.style.setProperty('--light', '#faf5e4');
-            root.style.setProperty('--dark', '#333');
+            const body = document.body;
+            const root = document.documentElement;
+            
+            // Hapus semua class tema sebelumnya
+            body.classList.remove('dark-theme', 'light-theme', 'default-theme');
+            
+            // Tambahkan class tema yang dipilih
+            body.classList.add(`${theme}-theme`);
+            
+            // Update variabel CSS
+            if (theme === 'dark') {
+                root.style.setProperty('--primary', '#3b82f6');  // Biru lebih terang
+                root.style.setProperty('--secondary', '#fffff'); // Biru sedikit lebih gelap
+                root.style.setProperty('--accent', '#f59e0b');   // Oranye
+                root.style.setProperty('--light', '#1e293b');    // Dark blue-gray
+                root.style.setProperty('--dark', '#f8fafc');     // Very light gray untuk teks
+                root.style.setProperty('--success', '#10b981');  // Hijau terang
+                root.style.setProperty('--warning', '#f59e0b');  // Kuning/Oranye
+                root.style.setProperty('--danger', '#ef4444');   // Merah terang
+            } else if (theme === 'light') {
+                root.style.setProperty('--primary', '#2c786c');
+                root.style.setProperty('--secondary', '#004445');
+                root.style.setProperty('--accent', '#f8b400');
+                root.style.setProperty('--light', '#faf5e4');
+                root.style.setProperty('--dark', '#333');
+            } else { // default
+                root.style.setProperty('--primary', '#2c786c');
+                root.style.setProperty('--secondary', '#004445');
+                root.style.setProperty('--accent', '#f8b400');
+                root.style.setProperty('--light', '#faf5e4');
+                root.style.setProperty('--dark', '#333');
+            }
+            
+            // Simpan preferensi tema
+            localStorage.setItem('appTheme', theme);
         }
-        
-        // Simpan preferensi tema
-        localStorage.setItem('appTheme', theme);
-    }
 
         // Fungsi untuk membuat cadangan data
         function backupData() {
@@ -2576,18 +2670,29 @@
                     }
                     
                     // Hapus semua data yang ada
-                    await database.ref('umkm').remove();
+                    if (isOnline) {
+                        await database.ref('umkm').remove();
+                    } else {
+                        umkmData = [];
+                        localStorage.setItem('umkmData', JSON.stringify([]));
+                    }
                     
                     // Simpan data baru
-                    const batch = {};
-                    data.umkmData.forEach(umkm => {
-                        const newRef = database.ref('umkm').push();
-                        batch[newRef.key] = umkm;
-                    });
-                    
-                    await database.ref('umkm').update(batch);
+                    if (isOnline) {
+                        const batch = {};
+                        data.umkmData.forEach(umkm => {
+                            const newRef = database.ref('umkm').push();
+                            batch[newRef.key] = umkm;
+                        });
+                        
+                        await database.ref('umkm').update(batch);
+                    } else {
+                        umkmData = data.umkmData;
+                        localStorage.setItem('umkmData', JSON.stringify(umkmData));
+                    }
                     
                     alert(`Data berhasil diimpor! Total UMKM: ${data.umkmData.length}`);
+                    updateUI();
                 } catch (error) {
                     console.error('Import error:', error);
                     alert('Gagal mengimpor data. Pastikan file backup valid.');
