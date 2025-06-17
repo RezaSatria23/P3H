@@ -741,6 +741,52 @@
             color: #e2e8f0;
         }
 
+        /* Tambahkan di bagian style */
+        .accordion-item {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .accordion-header {
+            padding: 12px 15px;
+            background-color: var(--primary);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .accordion-header h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .accordion-body {
+            padding: 0;
+            display: none;
+            background-color: white;
+        }
+
+        /* Dark theme support */
+        body.dark-theme .accordion-item {
+            border-color: #334155;
+        }
+
+        body.dark-theme .accordion-body {
+            background-color: #1e293b;
+        }
+
+        body.dark-theme .accordion-header {
+            background-color: #1e40af;
+        }
+
+        body.dark-theme table th {
+            background-color: #334155;
+        }
+
     </style>
 </head>
 <body>
@@ -929,17 +975,11 @@
                 
                 <div class="card fade-in">
                     <div class="card-header">
-                        <h2>Lokasi UMKM</h2>
+                        <h2>Lokasi UMKM Berdasarkan Kecamatan</h2>
                         <div class="search-filter">
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
                                 <input type="text" id="map-search" placeholder="Cari UMKM...">
-                            </div>
-                            <div class="filter-dropdown">
-                                <select id="map-kecamatan-filter">
-                                    <option value="">Semua Kecamatan</option>
-                                    <!-- Kecamatan akan diisi oleh JavaScript -->
-                                </select>
                             </div>
                             <div class="filter-dropdown">
                                 <select id="map-status-filter">
@@ -952,12 +992,8 @@
                         </div>
                     </div>
                     
-                    <div class="map-container" id="umkm-map">
-                        <!-- Peta akan ditampilkan di sini -->
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #777;">
-                            <i class="fas fa-map-marked-alt" style="font-size: 3rem; margin-bottom: 15px;"></i>
-                            <p>Peta lokasi UMKM akan ditampilkan di sini</p>
-                        </div>
+                    <div id="district-accordion">
+                        <!-- Kecamatan akan diisi oleh JavaScript -->
                     </div>
                 </div>
             </div>
@@ -1444,19 +1480,21 @@
         }
 
 
-       function switchPage(pageId) {
+        function switchPage(pageId) {
             contentPages.forEach(page => {
                 page.classList.remove('active');
                 if (page.id === `${pageId}-page`) {
                     page.classList.add('active');
                     
-                    // Refresh data when switching to certain pages
+                    // Refresh data ketika berpindah ke halaman tertentu
                     if (pageId === 'umkm') {
                         renderUmkmTable();
                     } else if (pageId === 'certification') {
                         renderCertificationTable();
                     } else if (pageId === 'stats') {
                         updateStats();
+                    } else if (pageId === 'map') {
+                        renderMapByDistrict();
                     }
                 }
             });
@@ -2123,6 +2161,9 @@
                 }
             });
 
+            document.getElementById('map-search').addEventListener('input', renderMapByDistrict);
+            document.getElementById('map-status-filter').addEventListener('change', renderMapByDistrict);
+            
             // Tambahkan di dalam fungsi initEventListeners():
             document.getElementById('app-theme').addEventListener('change', function() {
                 applyTheme(this.value);
@@ -2492,6 +2533,146 @@
                 console.error('Error creating backup:', error);
                 alert('Gagal membuat backup data. Silakan coba lagi.');
             }
+        }
+
+        function renderMapByDistrict() {
+            const searchTerm = document.getElementById('map-search').value.toLowerCase();
+            const statusFilter = document.getElementById('map-status-filter').value;
+            
+            // Kelompokkan UMKM berdasarkan kecamatan
+            const districts = {};
+            umkmData.forEach(umkm => {
+                // Filter data berdasarkan pencarian dan status
+                const matchesSearch = umkm.nama.toLowerCase().includes(searchTerm) || 
+                                    umkm.pemilik.toLowerCase().includes(searchTerm);
+                const matchesStatus = statusFilter ? umkm.status === statusFilter : true;
+                
+                if (matchesSearch && matchesStatus) {
+                    const districtName = umkm.kecamatan.name;
+                    if (!districts[districtName]) {
+                        districts[districtName] = [];
+                    }
+                    districts[districtName].push(umkm);
+                }
+            });
+            
+            const accordionContainer = document.getElementById('district-accordion');
+            accordionContainer.innerHTML = '';
+            
+            // Urutkan kecamatan berdasarkan nama
+            const sortedDistricts = Object.keys(districts).sort();
+            
+            if (sortedDistricts.length === 0) {
+                accordionContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Tidak ada data UMKM yang sesuai dengan filter</p>';
+                return;
+            }
+            
+            sortedDistricts.forEach((districtName, index) => {
+                const districtUmkms = districts[districtName];
+                
+                // Buat elemen accordion untuk setiap kecamatan
+                const accordionItem = document.createElement('div');
+                accordionItem.className = 'accordion-item';
+                accordionItem.style.marginBottom = '10px';
+                accordionItem.style.borderRadius = '5px';
+                accordionItem.style.overflow = 'hidden';
+                accordionItem.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+                
+                // Header accordion
+                const accordionHeader = document.createElement('div');
+                accordionHeader.className = 'accordion-header';
+                accordionHeader.style.padding = '12px 15px';
+                accordionHeader.style.backgroundColor = 'var(--primary)';
+                accordionHeader.style.color = 'white';
+                accordionHeader.style.cursor = 'pointer';
+                accordionHeader.style.display = 'flex';
+                accordionHeader.style.justifyContent = 'space-between';
+                accordionHeader.style.alignItems = 'center';
+                
+                const headerTitle = document.createElement('h3');
+                headerTitle.style.margin = '0';
+                headerTitle.style.fontSize = '1rem';
+                headerTitle.innerHTML = `
+                    <i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i>
+                    ${districtName} 
+                    <span style="font-size: 0.8rem; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px;">
+                        ${districtUmkms.length} UMKM
+                    </span>
+                `;
+                
+                const headerIcon = document.createElement('i');
+                headerIcon.className = 'fas fa-chevron-down';
+                headerIcon.style.transition = 'transform 0.3s ease';
+                
+                accordionHeader.appendChild(headerTitle);
+                accordionHeader.appendChild(headerIcon);
+                
+                // Body accordion
+                const accordionBody = document.createElement('div');
+                accordionBody.className = 'accordion-body';
+                accordionBody.style.padding = '0';
+                accordionBody.style.display = 'none';
+                accordionBody.style.backgroundColor = 'white';
+                
+                // Tabel UMKM dalam kecamatan
+                const table = document.createElement('table');
+                table.style.width = '100%';
+                table.style.borderCollapse = 'collapse';
+                
+                // Header tabel
+                const thead = document.createElement('thead');
+                thead.innerHTML = `
+                    <tr>
+                        <th style="padding: 10px; text-align: left; background: #f5f5f5;">Nama UMKM</th>
+                        <th style="padding: 10px; text-align: left; background: #f5f5f5;">Kelurahan</th>
+                        <th style="padding: 10px; text-align: left; background: #f5f5f5;">Alamat Lengkap</th>
+                        <th style="padding: 10px; text-align: left; background: #f5f5f5;">Peta</th>
+                        <th style="padding: 10px; text-align: left; background: #f5f5f5;">Status Halal</th>
+                    </tr>
+                `;
+                
+                // Body tabel
+                const tbody = document.createElement('tbody');
+                districtUmkms.forEach(umkm => {
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = '1px solid #eee';
+                    row.innerHTML = `
+                        <td style="padding: 10px;">${umkm.nama}</td>
+                        <td style="padding: 10px;">${umkm.kelurahan.name}</td>
+                        <td style="padding: 10px;">${umkm.alamat}</td>
+                        <td style="padding: 10px;">
+                            ${umkm.maps ? 
+                                `<a href="${umkm.maps}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                                    <i class="fas fa-map-marked-alt"></i> Lihat Peta
+                                </a>` : 
+                                '<span style="color: #999;">-</span>'}
+                        </td>
+                        <td style="padding: 10px;">${getStatusBadge(umkm.status)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                table.appendChild(thead);
+                table.appendChild(tbody);
+                accordionBody.appendChild(table);
+                
+                accordionItem.appendChild(accordionHeader);
+                accordionItem.appendChild(accordionBody);
+                accordionContainer.appendChild(accordionItem);
+                
+                // Tambahkan event listener untuk toggle accordion
+                accordionHeader.addEventListener('click', function() {
+                    const isOpen = accordionBody.style.display === 'block';
+                    accordionBody.style.display = isOpen ? 'none' : 'block';
+                    headerIcon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+                });
+                
+                // Buka accordion pertama secara default
+                if (index === 0) {
+                    accordionBody.style.display = 'block';
+                    headerIcon.style.transform = 'rotate(180deg)';
+                }
+            });
         }
     </script>
 </body>
