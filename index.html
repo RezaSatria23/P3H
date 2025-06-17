@@ -903,6 +903,7 @@
                                 <tr>
                                     <th>Nama UMKM</th>
                                     <th>Pemilik</th>
+                                    <th>Jenis Produk</th>
                                     <th>Kecamatan</th>
                                     <th>Kelurahan</th>
                                     <th>Status Halal</th>
@@ -1165,6 +1166,19 @@
                     <div class="form-group">
                         <label for="pemilik">Nama Pemilik</label>
                         <input type="text" id="pemilik" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Jenis Produk</label>
+                        <div style="display: flex; gap: 15px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="radio" name="jenis-produk" value="makanan" required>
+                                <span>Makanan</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="radio" name="jenis-produk" value="minuman">
+                                <span>Minuman</span>
+                            </label>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="provinsi">Provinsi</label>
@@ -1554,6 +1568,7 @@
                 <tr data-id="${umkm.id}">
                     <td>${umkm.nama}</td>
                     <td>${umkm.pemilik}</td>
+                    <td>${umkm.jenisProduk === 'makanan' ? 'Makanan' : umkm.jenisProduk === 'minuman' ? 'Minuman' : 'Lainnya'}</td>
                     <td>${umkm.kecamatan?.name || '-'}</td>
                     <td>${umkm.kelurahan?.name || '-'}</td>
                     <td>${getStatusBadge(umkm.status)}</td>
@@ -1757,6 +1772,9 @@
                 // Set status
                 document.querySelector(`input[name="status-halal"][value="${umkm.status}"]`).checked = true;
                 
+                // Set jenis produk
+                document.querySelector(`input[name="jenis-produk"][value="${umkm.jenisProduk}"]`).checked = true;
+
                 // Load provinsi data
                 const provinceDropdown = document.getElementById('provinsi');
                 provinceDropdown.value = umkm.provinsi.id;
@@ -1811,6 +1829,11 @@
                 document.getElementById('view-alamat').textContent = umkm.alamat;
                 document.getElementById('view-keterangan').textContent = umkm.keterangan || '-';
                 
+                // Set jenis produk
+                const jenisProdukText = umkm.jenisProduk === 'makanan' ? 'Makanan' : 
+                                    umkm.jenisProduk === 'minuman' ? 'Minuman' :
+                document.getElementById('view-jenis-produk').textContent = jenisProdukText;
+
                 // Set status
                 let statusText = '';
                 switch(umkm.status) {
@@ -1917,6 +1940,7 @@
                         ...umkmData[index],
                         nama,
                         pemilik,
+                        jenisProduk,
                         provinsi: { id: provinsiId, name: provinsiName },
                         kabupaten: { id: kabupatenId, name: kabupatenName },
                         kecamatan: { id: kecamatanId, name: kecamatanName },
@@ -1936,6 +1960,7 @@
                     id: newId,
                     nama,
                     pemilik,
+                    jenisProduk: jenisProduk || 'makanan', // default ke makanan
                     provinsi: { id: provinsiId, name: provinsiName },
                     kabupaten: { id: kabupatenId, name: kabupatenName },
                     kecamatan: { id: kecamatanId, name: kecamatanName },
