@@ -1917,42 +1917,21 @@
                 // Show map preview if available
                 const mapPreview = document.getElementById('view-map-preview');
                 if (umkm.maps) {
-                    let embedUrl;
-                    
-                    // Jika berupa link share Google Maps
-                    if (umkm.maps.includes('goo.gl/maps') || umkm.maps.includes('google.com/maps')) {
-                        // Coba ekstrak parameter 'q' yang berisi alamat/koordinat
-                        try {
-                            const urlObj = new URL(umkm.maps);
-                            const qParam = urlObj.searchParams.get('q');
-                            
-                            if (qParam) {
-                                embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(qParam)}&output=embed`;
-                            } else {
-                                // Jika tidak ada parameter q, gunakan URL langsung
-                                embedUrl = umkm.maps.replace('/maps/', '/maps/embed/');
-                            }
-                        } catch (e) {
-                            // Jika parsing URL gagal, gunakan alamat UMKM
-                            embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(umkm.alamat)}&output=embed`;
-                        }
-                    } else if (umkm.maps.includes('@')) {
-                        // Jika berisi koordinat (format @lat,lng)
-                        embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(umkm.maps)}&output=embed`;
-                    } else {
-                        // Anggap sebagai alamat biasa
-                        embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(umkm.maps)}&output=embed`;
-                    }
-                    
+                    const mapsLink = getMapsLink(umkm.maps);
                     mapPreview.innerHTML = `
-                        <iframe 
-                            src="${embedUrl}" 
-                            width="100%" 
-                            height="100%" 
-                            style="border:0;" 
-                            allowfullscreen="" 
-                            loading="lazy">
-                        </iframe>
+                        <div style="height: 100%; display: flex; flex-direction: column;">
+                            <iframe 
+                                src="${mapsLink.replace('?q=', '/embed?q=')}" 
+                                width="100%" 
+                                height="100%" 
+                                style="border:0; flex-grow: 1;" 
+                                allowfullscreen="" 
+                                loading="lazy">
+                            </iframe>
+                            <a href="${mapsLink}" target="_blank" style="padding: 8px; text-align: center; background: var(--primary); color: white; text-decoration: none;">
+                                Buka di Google Maps
+                            </a>
+                        </div>
                     `;
                 } else {
                     mapPreview.innerHTML = `
@@ -1994,6 +1973,20 @@
             const status = document.querySelector('input[name="status-halal"]:checked')?.value;
             const keterangan = document.getElementById('keterangan').value;
             
+            // Di dalam fungsi saveUmkm(), modifikasi bagian maps:
+            const mapsInput = document.getElementById('maps').value;
+            let mapsValue = '';
+
+            // Jika input mengandung koordinat (format: -6.12345,106.12345 atau @-6.12345,106.12345)
+            if (mapsInput.match(/@?[-+]?[0-9]*\.?[0-9]+,[-+]?[0-9]*\.?[0-9]+/)) {
+                // Bersihkan format koordinat (hapus @ jika ada)
+                const cleanCoords = mapsInput.replace('@', '');
+                mapsValue = `https://www.google.com/maps?q=${cleanCoords}`;
+            } else {
+                // Jika bukan koordinat, gunakan nilai asli (bisa berupa alamat atau link)
+                mapsValue = mapsInput;
+            }
+
             if (!nama || !pemilik || !provinsiId || !kabupatenId || !kecamatanId || !kelurahanId || !alamat || !status) {
                 alert('Harap isi semua field yang wajib diisi!');
                 return;
@@ -2639,7 +2632,7 @@
                         <td style="padding: 10px;">${umkm.alamat}</td>
                         <td style="padding: 10px;">
                             ${umkm.maps ? 
-                                `<a href="${umkm.maps}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                                `<a href="${getMapsLink(umkm.maps)}" target="_blank" style="color: var(--primary); text-decoration: none;">
                                     <i class="fas fa-map-marked-alt"></i> Lihat Peta
                                 </a>` : 
                                 '<span style="color: #999;">-</span>'}
@@ -2670,6 +2663,21 @@
                     headerIcon.style.transform = 'rotate(180deg)';
                 }
             });
+        }
+        function getMapsLink(mapsInput) {
+            // Jika sudah berupa link Google Maps, kembalikan langsung
+            if (mapsInput.includes('google.com/maps') || mapsInput.includes('goo.gl/maps')) {
+                return mapsInput;
+            }
+            
+            // Jika berisi koordinat (format: -6.12345,106.12345 atau @-6.12345,106.12345)
+            const coordMatch = mapsInput.match(/@?([-+]?[0-9]*\.?[0-9]+,[-+]?[0-9]*\.?[0-9]+)/);
+            if (coordMatch) {
+                return `https://www.google.com/maps?q=${coordMatch[1]}`;
+            }
+            
+            // Jika berupa alamat biasa, buat link pencarian alamat
+            return `https://www.google.com/maps?q=${encodeURIComponent(mapsInput)}`;
         }
     </script>
 </body>
