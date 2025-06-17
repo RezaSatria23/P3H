@@ -1725,6 +1725,8 @@
                 <tr data-id="${umkm.id}">
                     <td>${umkm.nama}</td>
                     <td>${umkm.pemilik}</td>
+                    <td>${getJenisProdukLabel(umkm.jenisProduk)}</td>
+                    <td>${umkm.kbli || '-'}</td>
                     <td>${formatDate(umkm.tanggalDaftar)}</td>
                     <td>${getStatusBadge(umkm.status)}</td>
                     <td>
