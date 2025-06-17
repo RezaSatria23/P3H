@@ -2114,6 +2114,10 @@
                 const mapUrl = this.value;
                 const mapPreview = document.getElementById('map-preview');
                 
+                const input = this.value;
+                if (input && !input.includes('google.com/maps') && !input.includes('@')) {
+                    alert('Format peta tidak valid. Gunakan link Google Maps atau format koordinat (@lat,lng)');
+                }
                 if (mapUrl) {
                     // Ekstrak koordinat atau alamat dari URL
                     let embedUrl;
@@ -2638,8 +2642,8 @@
                         <td style="padding: 10px;">${umkm.kelurahan.name}</td>
                         <td style="padding: 10px;">${umkm.alamat}</td>
                         <td style="padding: 10px;">
-                            ${umkm.maps ? 
-                                `<a href="${umkm.maps}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                            ${getGoogleMapsLink(umkm.maps) ? 
+                                `<a href="${getGoogleMapsLink(umkm.maps)}" target="_blank" style="color: var(--primary); text-decoration: none;">
                                     <i class="fas fa-map-marked-alt"></i> Lihat Peta
                                 </a>` : 
                                 '<span style="color: #999;">-</span>'}
@@ -2670,6 +2674,35 @@
                     headerIcon.style.transform = 'rotate(180deg)';
                 }
             });
+        }
+        // Fungsi untuk mendapatkan link Google Maps dengan koordinat
+        function getGoogleMapsLink(mapsUrl) {
+            if (!mapsUrl) return null;
+            
+            // Jika sudah berupa link Google Maps dengan koordinat (@lat,lng)
+            if (mapsUrl.includes('@')) {
+                const coords = mapsUrl.match(/@([-0-9.]+),([-0-9.]+)/);
+                if (coords && coords.length >= 3) {
+                    return `https://www.google.com/maps/place/${coords[1]},${coords[2]}`;
+                }
+            }
+            
+            // Jika berupa link Google Maps share
+            if (mapsUrl.includes('google.com/maps') || mapsUrl.includes('goo.gl/maps')) {
+                try {
+                    const url = new URL(mapsUrl);
+                    const qParam = url.searchParams.get('q');
+                    if (qParam && qParam.includes(',')) {
+                        const [lat, lng] = qParam.split(',');
+                        return `https://www.google.com/maps/place/${lat},${lng}`;
+                    }
+                } catch (e) {
+                    console.error('Error parsing maps URL:', e);
+                }
+            }
+            
+            // Jika tidak bisa diekstrak koordinatnya, return null
+            return null;
         }
     </script>
 </body>
