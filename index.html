@@ -2113,11 +2113,7 @@
             document.getElementById('maps').addEventListener('change', function() {
                 const mapUrl = this.value;
                 const mapPreview = document.getElementById('map-preview');
-                
-                const input = this.value;
-                if (input && !input.includes('google.com/maps') && !input.includes('@')) {
-                    alert('Format peta tidak valid. Gunakan link Google Maps atau format koordinat (@lat,lng)');
-                }
+            
                 if (mapUrl) {
                     // Ekstrak koordinat atau alamat dari URL
                     let embedUrl;
