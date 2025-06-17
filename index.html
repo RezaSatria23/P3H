@@ -585,8 +585,25 @@
                 padding-bottom: 70px;
             }
 
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
             .search-filter {
                 flex-direction: column;
+                width: 100%;
+                margin-top: 15px;
+                gap: 10px;
+            }
+
+            .filter-dropdown {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .search-box {
+                width: 100%;
             }
         }
 
@@ -1255,7 +1272,7 @@
                         <label for="maps">Link Google Maps</label>
                         <input type="url" id="maps" class="form-control" placeholder="https://maps.google.com/...">
                         <small style="display: block; margin-top: 5px; color: #666;">
-                            Masukkan link Google Maps atau koordinat (contoh: -6.12345,106.12345)
+                            Masukkan hanya titik koordinat (contoh: -6.12345,106.12345)
                         </small>
                         <div class="map-preview" id="map-preview">
                             <div>
