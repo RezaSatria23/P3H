@@ -1230,7 +1230,23 @@
                             <option value="minuman">Minuman</option>
                         </select>
                     </div>
-
+                    <div class="form-group">
+                        <label>Status Sertifikasi Halal</label>
+                        <div style="display: flex; gap: 15px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="radio" name="status-halal" value="certified" required>
+                                <span>Sudah Bersertifikat</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="radio" name="status-halal" value="process">
+                                <span>Dalam Proses</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="radio" name="status-halal" value="not-certified">
+                                <span>Belum</span>
+                            </label>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="sh">Nomor SH</label>
                         <input type="text" id="sh" class="form-control" placeholder="Masukkan Nomor SH" required>
@@ -1238,7 +1254,26 @@
                             Contoh: SH2025-1-123456
                         </small>
                     </div>
-
+                    <!-- Tambahkan field untuk UMKM belum bersertifikat -->
+                    <div id="uncertified-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="nama-produk">Nama Produk</label>
+                            <input type="text" id="nama-produk" class="form-control" placeholder="Masukkan nama produk utama">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="nib">Nomor Induk Berusaha (NIB)</label>
+                            <input type="text" id="nib" class="form-control" placeholder="Masukkan NIB">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="kbli">Kode KBLI</label>
+                            <input type="text" id="kbli" class="form-control" placeholder="Masukkan kode KBLI">
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Contoh: 10732 (Industri Pengolahan Susu)
+                            </small>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="provinsi">Provinsi</label>
                         <select id="provinsi" class="form-control" required>
@@ -1279,23 +1314,6 @@
                                 <i class="fas fa-map-marked-alt"></i>
                                 <p>Pratinjau peta akan muncul di sini</p>
                             </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Status Sertifikasi Halal</label>
-                        <div style="display: flex; gap: 15px; margin-top: 10px;">
-                            <label style="display: flex; align-items: center; gap: 5px;">
-                                <input type="radio" name="status-halal" value="certified" required>
-                                <span>Sudah Bersertifikat</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 5px;">
-                                <input type="radio" name="status-halal" value="process">
-                                <span>Dalam Proses</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 5px;">
-                                <input type="radio" name="status-halal" value="not-certified">
-                                <span>Belum</span>
-                            </label>
                         </div>
                     </div>
                     <div class="form-group">
@@ -1859,6 +1877,11 @@
                 document.getElementById('maps').value = umkm.maps || '';
                 document.getElementById('keterangan').value = umkm.keterangan || '';
                 
+                // Isi field untuk UMKM belum bersertifikat
+                document.getElementById('nama-produk').value = umkm.namaProduk || '';
+                document.getElementById('nib').value = umkm.nib || '';
+                document.getElementById('kbli').value = umkm.kbli || '';
+
                 // Set status
                 document.querySelector(`input[name="status-halal"][value="${umkm.status}"]`).checked = true;
                 
@@ -1899,6 +1922,8 @@
                 // Show modal
                 umkmModal.style.display = 'flex';
                 document.body.style.overflow = 'hidden';
+
+                toggleFormFieldsBasedOnStatus();
             }
         }
 
@@ -1917,6 +1942,24 @@
                 document.getElementById('view-kelurahan').textContent = umkm.kelurahan.name;
                 document.getElementById('view-alamat').textContent = umkm.alamat;
                 document.getElementById('view-keterangan').textContent = umkm.keterangan || '-';
+
+                if (umkm.status === 'not-certified') {
+                    const additionalInfo = `
+                        <div class="form-group">
+                            <label>Nama Produk</label>
+                            <div class="form-control-static">${umkm.namaProduk || '-'}</div>
+                        </div>
+                        <div class="form-group">
+                            <label>NIB</label>
+                            <div class="form-control-static">${umkm.nib || '-'}</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Kode KBLI</label>
+                            <div class="form-control-static">${umkm.kbli || '-'}</div>
+                        </div>
+                    `;
+                    document.querySelector('.modal-body').insertAdjacentHTML('beforeend', additionalInfo);
+                }
                 
                 // Set status
                 let statusText = '';
@@ -1991,6 +2034,9 @@
             const maps = document.getElementById('maps').value;
             const status = document.querySelector('input[name="status-halal"]:checked')?.value;
             const keterangan = document.getElementById('keterangan').value;
+            const namaProduk = document.getElementById('nama-produk').value;
+            const nib = document.getElementById('nib').value;
+            const kbli = document.getElementById('kbli').value;
             
             // Di dalam fungsi saveUmkm(), modifikasi bagian maps:
             const mapsInput = document.getElementById('maps').value;
@@ -2028,6 +2074,9 @@
                         alamat,
                         maps,
                         status,
+                        namaProduk: status === 'not-certified' ? namaProduk : null,
+                        nib: status === 'not-certified' ? nib : null,
+                        kbli: status === 'not-certified' ? kbli : null,
                         keterangan
                     };
                 }
@@ -2049,9 +2098,23 @@
                     alamat,
                     maps,
                     status,
+                    namaProduk: status === 'not-certified' ? namaProduk : null,
+                    nib: status === 'not-certified' ? nib : null,
+                    kbli: status === 'not-certified' ? kbli : null,
                     keterangan,
                     tanggalDaftar: today
                 });
+            }
+
+            // Validasi field berdasarkan status
+            if (status === 'certified' && !sh) {
+                alert('Nomor SH wajib diisi untuk UMKM yang sudah bersertifikat!');
+                return;
+            }
+            
+            if (status === 'not-certified' && (!namaProduk || !nib || !kbli)) {
+                alert('Nama Produk, NIB, dan Kode KBLI wajib diisi untuk UMKM yang belum bersertifikat!');
+                return;
             }
             
             saveUmkmData();
@@ -2186,6 +2249,13 @@
             setTimeout(() => {
                 applyTheme(savedTheme);
             }, 100);
+
+            // Di dalam fungsi initEventListeners(), tambahkan:
+            document.querySelectorAll('input[name="status-halal"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    toggleFormFieldsBasedOnStatus();
+                });
+            });
             
             // Search and filter functionality
             document.getElementById('umkm-search').addEventListener('input', function() {
@@ -2697,6 +2767,32 @@
             
             // Jika berupa alamat biasa, buat link pencarian alamat
             return `https://www.google.com/maps?q=${encodeURIComponent(mapsInput)}`;
+        }
+        function toggleFormFieldsBasedOnStatus() {
+            const status = document.querySelector('input[name="status-halal"]:checked')?.value;
+            const shGroup = document.getElementById('sh-group');
+            const uncertifiedFields = document.getElementById('uncertified-fields');
+            
+            // Sembunyikan semua field khusus terlebih dahulu
+            shGroup.style.display = 'none';
+            uncertifiedFields.style.display = 'none';
+            
+            // Atur required attribute
+            document.getElementById('sh').required = false;
+            document.getElementById('nama-produk').required = false;
+            document.getElementById('nib').required = false;
+            document.getElementById('kbli').required = false;
+            
+            // Tampilkan field sesuai status
+            if (status === 'certified') {
+                shGroup.style.display = 'block';
+                document.getElementById('sh').required = true;
+            } else if (status === 'not-certified') {
+                uncertifiedFields.style.display = 'block';
+                document.getElementById('nama-produk').required = true;
+                document.getElementById('nib').required = true;
+                document.getElementById('kbli').required = true;
+            }
         }
     </script>
 </body>
