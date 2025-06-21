@@ -566,6 +566,9 @@
                 margin-right: 0;
                 font-size: 1.2rem;
             }
+            .content-footer {
+                left: 70px;
+            }
         }
 
         @media (max-width: 768px) {
@@ -604,6 +607,10 @@
 
             .search-box {
                 width: 100%;
+            }
+            .content-footer {
+                left: 0;
+                padding-bottom: 70px; /* Account for bottom nav */
             }
         }
 
@@ -803,17 +810,24 @@
 
         /* Footer Styles */
         .content-footer {
-            margin-top: 30px;
-            padding: 15px 0;
+            position: fixed;
+            bottom: 0;
+            left: 250px;
+            right: 0;
+            padding: 15px 20px;
             text-align: center;
             color: #666;
             font-size: 0.8rem;
             border-top: 1px solid #eee;
+            background-color: white;
+            z-index: 99;
+            transition: all 0.3s ease;
         }
 
         body.dark-theme .content-footer {
             color: #94a3b8;
             border-top-color: #334155;
+            background-color: #1e293b;
         }
 
     </style>
@@ -1422,6 +1436,26 @@
         </div>
     </div>
 
+    <!-- Footer untuk setiap halaman -->
+    <div class="content-footer" id="dashboard-footer">
+        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved.
+    </div>
+    <div class="content-footer" id="umkm-footer" style="display: none;">
+        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved.
+    </div>
+    <div class="content-footer" id="map-footer" style="display: none;">
+        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved.
+    </div>
+    <div class="content-footer" id="certification-footer" style="display: none;">
+        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved.
+    </div>
+    <div class="content-footer" id="stats-footer" style="display: none;">
+        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved.
+    </div>
+    <div class="content-footer" id="settings-footer" style="display: none;">
+        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved.
+    </div>
+
     <!-- Include Chart.js for statistics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -1446,6 +1480,7 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('dashboard-footer').style.display = 'block';
             initClock();
             initMenu();
             loadUmkmData();
@@ -1544,6 +1579,14 @@
                     } else if (pageId === 'map') {
                         renderMapByDistrict();
                     }
+
+                     // Sembunyikan semua footer
+                    document.querySelectorAll('.content-footer').forEach(footer => {
+                        footer.style.display = 'none';
+                    });
+                    
+                    // Tampilkan footer yang sesuai
+                    document.getElementById(`${pageId}-footer`).style.display = 'block';
                 }
             });
         }
