@@ -1876,7 +1876,6 @@
                 
                 // Set status
                 document.querySelector(`input[name="status-halal"][value="${umkm.status}"]`).checked = true;
-                toggleAdditionalForms(umkm.status);
 
                 if (umkm.status === 'not-certified') {
                     document.getElementById('nama-produk').value = umkm.namaProduk || '';
