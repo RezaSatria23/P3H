@@ -1387,6 +1387,30 @@
         </div>
     </div>
 
+    <!-- Form tambahan untuk status "Belum" -->
+    <div id="belum-form" style="display: none;">
+        <div class="form-group">
+            <label for="nama-produk">Nama Produk</label>
+            <input type="text" id="nama-produk" class="form-control">
+        </div>
+        <div class="form-group">
+            <label for="nib">Nomor Induk Berusaha (NIB)</label>
+            <input type="text" id="nib" class="form-control">
+        </div>
+        <div class="form-group">
+            <label for="kbli">Nomor KBLI</label>
+            <input type="text" id="kbli" class="form-control">
+        </div>
+    </div>
+
+    <!-- Form tambahan untuk status "Dalam Proses" -->
+    <div id="proses-form" style="display: none;">
+        <div class="form-group">
+            <label for="nomor-sh">Nomor SH</label>
+            <input type="text" id="nomor-sh" class="form-control">
+        </div>
+    </div>
+
     <!-- Include Chart.js for statistics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -1898,6 +1922,19 @@
                 // Show modal
                 umkmModal.style.display = 'flex';
                 document.body.style.overflow = 'hidden';
+
+                // Set status dan tampilkan form tambahan
+                document.querySelector(`input[name="status-halal"][value="${umkm.status}"]`).checked = true;
+                toggleAdditionalForms(umkm.status);
+                
+                // Isi form tambahan jika ada
+                if (umkm.status === 'not-certified') {
+                    document.getElementById('nama-produk').value = umkm.namaProduk || '';
+                    document.getElementById('nib').value = umkm.nib || '';
+                    document.getElementById('kbli').value = umkm.kbli || '';
+                } else if (umkm.status === 'process') {
+                    document.getElementById('nomor-sh').value = umkm.sh || '';
+                }   
             }
         }
 
@@ -1931,9 +1968,35 @@
                         break;
                 }
                 document.getElementById('view-status').innerHTML = statusText;
+
+                let additionalInfo = '';
+                if (umkm.status === 'not-certified') {
+                    additionalInfo = `
+                        <div class="form-group">
+                            <label>Nama Produk</label>
+                            <div class="form-control-static">${umkm.namaProduk || '-'}</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Nomor Induk Berusaha (NIB)</label>
+                            <div class="form-control-static">${umkm.nib || '-'}</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Nomor KBLI</label>
+                            <div class="form-control-static">${umkm.kbli || '-'}</div>
+                        </div>
+                    `;
+                } else if (umkm.status === 'process') {
+                    additionalInfo = `
+                        <div class="form-group">
+                            <label>Nomor SH</label>
+                            <div class="form-control-static">${umkm.sh || '-'}</div>
+                        </div>
+                    `;
+                }
                 
                 // Show map preview if available
                 const mapPreview = document.getElementById('view-map-preview');
+                mapPreview.insertAdjacentHTML('beforebegin', additionalInfo);
                 if (umkm.maps) {
                     const mapsLink = getMapsLink(umkm.maps);
                     mapPreview.innerHTML = `
@@ -1990,6 +2053,10 @@
             const maps = document.getElementById('maps').value;
             const status = document.querySelector('input[name="status-halal"]:checked')?.value;
             const keterangan = document.getElementById('keterangan').value;
+            const namaProduk = document.getElementById('nama-produk').value;
+            const nib = document.getElementById('nib').value;
+            const kbli = document.getElementById('kbli').value;
+            const nomorShProses = document.getElementById('nomor-sh')?.value;
             
             // Di dalam fungsi saveUmkm(), modifikasi bagian maps:
             const mapsInput = document.getElementById('maps').value;
@@ -2019,7 +2086,7 @@
                         nama,
                         pemilik,
                         jenisProduk,
-                        sh,
+                        sh: status === 'process' ? nomorShProses : sh,
                         provinsi: { id: provinsiId, name: provinsiName },
                         kabupaten: { id: kabupatenId, name: kabupatenName },
                         kecamatan: { id: kecamatanId, name: kecamatanName },
@@ -2027,7 +2094,10 @@
                         alamat,
                         maps,
                         status,
-                        keterangan
+                        keterangan,
+                        namaProduk: status === 'not-certified' ? namaProduk : '',
+                        nib: status === 'not-certified' ? nib : '',
+                        kbli: status === 'not-certified' ? kbli : ''
                     };
                 }
             } else {
@@ -2040,7 +2110,7 @@
                     nama,
                     pemilik,
                     jenisProduk,
-                    sh,
+                    sh: status === 'process' ? nomorShProses : sh,
                     provinsi: { id: provinsiId, name: provinsiName },
                     kabupaten: { id: kabupatenId, name: kabupatenName },
                     kecamatan: { id: kecamatanId, name: kecamatanName },
@@ -2049,6 +2119,9 @@
                     maps,
                     status,
                     keterangan,
+                    namaProduk: status === 'not-certified' ? namaProduk : '',
+                    nib: status === 'not-certified' ? nib : '',
+                    kbli: status === 'not-certified' ? kbli : '',
                     tanggalDaftar: today
                 });
             }
@@ -2176,7 +2249,7 @@
             document.getElementById('app-theme').addEventListener('change', function() {
                 applyTheme(this.value);
             });
-
+            
             document.getElementById('backup-data').addEventListener('click', backupData);
 
             // Tambahkan di akhir fungsi initEventListeners() untuk memuat tema yang disimpan:
@@ -2210,6 +2283,13 @@
             // Export buttons
             document.getElementById('export-csv').addEventListener('click', exportToCSV);
             document.getElementById('export-excel').addEventListener('click', exportToExcel);
+
+            // Tambahkan di dalam fungsi initEventListeners()
+            document.querySelectorAll('input[name="status-halal"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    toggleAdditionalForms(this.value);
+                });
+            });
         }
 
         // Filter UMKM table
@@ -2696,6 +2776,26 @@
             
             // Jika berupa alamat biasa, buat link pencarian alamat
             return `https://www.google.com/maps?q=${encodeURIComponent(mapsInput)}`;
+        }
+        function toggleAdditionalForms(status) {
+            const belumForm = document.getElementById('belum-form');
+            const prosesForm = document.getElementById('proses-form');
+            const shField = document.getElementById('sh');
+            
+            // Sembunyikan semua form tambahan terlebih dahulu
+            belumForm.style.display = 'none';
+            prosesForm.style.display = 'none';
+            
+            // Tampilkan form sesuai status
+            if (status === 'not-certified') {
+                belumForm.style.display = 'block';
+                shField.required = false;
+            } else if (status === 'process') {
+                prosesForm.style.display = 'block';
+                shField.required = true;
+            } else if (status === 'certified') {
+                shField.required = true;
+            }
         }
     </script>
 </body>
