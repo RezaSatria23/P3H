@@ -801,6 +801,31 @@
             background-color: #334155;
         }
 
+        /* Copyright Notice Styles */
+        .copyright-notice {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+
+        .copyright-notice a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .copyright-notice a:hover {
+            text-decoration: underline;
+        }
+
+        body.dark-theme .copyright-notice {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+        }
+
     </style>
 </head>
 <body>
@@ -1009,6 +1034,11 @@
                     <div id="district-accordion">
                         <!-- Kecamatan akan diisi oleh JavaScript -->
                     </div>
+                </div>
+                <div class="copyright-notice fade-in">
+                    <p>© 2025 Halal UMKM Tracker - Aplikasi ini dikembangkan untuk kepentingan non-komersial</p>
+                    <p>Dilarang memperjualbelikan atau menggunakan aplikasi ini untuk tujuan komersial tanpa izin resmi</p>
+                    <p>Dikembangkan oleh <a href="https://wa.me/62882006080066" target="_blank">Petugas Pendamping Produk Halal</a> - PPPH Jawa Tengah</p>
                 </div>
             </div>
             
