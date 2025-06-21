@@ -2778,12 +2778,8 @@
             // Tampilkan form sesuai status
             if (status === 'not-certified') {
                 belumForm.style.display = 'block';
-                shField.required = false;
             } else if (status === 'process') {
                 prosesForm.style.display = 'block';
-                shField.required = true;
-            } else if (status === 'certified') {
-                shField.required = true;
             }
         }
     </script>
