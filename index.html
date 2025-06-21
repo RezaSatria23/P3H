@@ -585,7 +585,7 @@
             }
 
             .main-content {
-                padding-bottom: 70px;
+                padding-bottom: 120px; /* Footer height + bottom nav height */
             }
 
             .card-header {
@@ -609,19 +609,24 @@
                 width: 100%;
             }
             .content-footer {
-                left: 0;
-                bottom: 70px; /* Sesuaikan dengan tinggi bottom-nav */
+                left: 0 !important; /* Pastikan full lebar di mobile */
+                bottom: 60px; /* Sesuaikan dengan tinggi bottom-nav */
                 padding: 10px 15px;
                 font-size: 0.7rem;
+                width: 100%; /* Pastikan mengambil lebar penuh */
+                box-sizing: border-box; /* Include padding dalam perhitungan width */
             }
             
             .content-footer p {
                 margin: 5px 0;
                 line-height: 1.3;
+                font-size: 0.65rem; /* Sedikit lebih kecil untuk mobile */
             }
             
             .content-footer a {
                 font-size: 0.7rem;
+                display: inline-block; /* Agar tidak terpotong */
+                word-break: break-all; /* Memastikan link panjang tidak overflow */
             }
         }
 
@@ -2356,6 +2361,31 @@
                 radio.addEventListener('change', function() {
                     toggleAdditionalForms(this.value);
                 });
+            });
+
+            // Tambahkan di bagian initEventListeners() atau DOMContentLoaded
+            function updateFooterPosition() {
+                const footer = document.querySelector('.content-footer[style*="display: block"]') || 
+                            document.getElementById('dashboard-footer');
+                const isMobile = window.innerWidth <= 768;
+                
+                if (isMobile && footer) {
+                    footer.style.left = '0';
+                    footer.style.right = '0';
+                    footer.style.width = '100%';
+                }
+            }
+
+            // Panggil saat load dan resize
+            window.addEventListener('load', updateFooterPosition);
+            window.addEventListener('resize', updateFooterPosition);
+
+            // Juga panggil saat ganti halaman
+            menuItems.forEach(item => {
+                item.addEventListener('click', updateFooterPosition);
+            });
+            bottomNavItems.forEach(item => {
+                item.addEventListener('click', updateFooterPosition);
             });
         }
 
