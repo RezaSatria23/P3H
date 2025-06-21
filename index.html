@@ -801,6 +801,18 @@
             background-color: #334155;
         }
 
+        .conditional-field {
+            transition: all 0.3s ease;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .conditional-field.show {
+            max-height: 500px;
+            opacity: 1;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -1247,15 +1259,18 @@
                             </label>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="sh">Nomor SH</label>
-                        <input type="text" id="sh" class="form-control" placeholder="Masukkan Nomor SH" required>
-                        <small style="display: block; margin-top: 5px; color: #666;">
-                            Contoh: SH2025-1-123456
-                        </small>
+                    <div id="sh-container" class="conditional-field" style="display: none;">
+                        <div class="form-group">
+                            <label for="sh">Nomor SH</label>
+                            <input type="text" id="sh" class="form-control" placeholder="Masukkan Nomor SH">
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Contoh: SH2025-1-123456
+                            </small>
+                        </div>
                     </div>
-                    <!-- Tambahkan field untuk UMKM belum bersertifikat -->
-                    <div id="uncertified-fields" style="display: none;">
+
+                    <!-- Field untuk status "Belum" -->
+                    <div id="uncertified-container" class="conditional-field" style="display: none;">
                         <div class="form-group">
                             <label for="nama-produk">Nama Produk</label>
                             <input type="text" id="nama-produk" class="form-control" placeholder="Masukkan nama produk utama">
@@ -1885,6 +1900,13 @@
                 // Set status
                 document.querySelector(`input[name="status-halal"][value="${umkm.status}"]`).checked = true;
                 
+                if (umkm.status === 'certified' || umkm.status === 'process') {
+                    document.getElementById('sh').value = umkm.sh || '';
+                } else if (umkm.status === 'not-certified') {
+                    document.getElementById('nama-produk').value = umkm.namaProduk || '';
+                    document.getElementById('nib').value = umkm.nib || '';
+                    document.getElementById('kbli').value = umkm.kbli || '';
+                }
                 // Load provinsi data
                 const provinceDropdown = document.getElementById('provinsi');
                 provinceDropdown.value = umkm.provinsi.id;
@@ -1943,8 +1965,16 @@
                 document.getElementById('view-alamat').textContent = umkm.alamat;
                 document.getElementById('view-keterangan').textContent = umkm.keterangan || '-';
 
-                if (umkm.status === 'not-certified') {
-                    const additionalInfo = `
+                let additionalInfo = '';
+                if (umkm.status === 'certified' || umkm.status === 'process') {
+                    additionalInfo = `
+                        <div class="form-group">
+                            <label>Nomor SH</label>
+                            <div class="form-control-static">${umkm.sh || '-'}</div>
+                        </div>
+                    `;
+                } else if (umkm.status === 'not-certified') {
+                    additionalInfo = `
                         <div class="form-group">
                             <label>Nama Produk</label>
                             <div class="form-control-static">${umkm.namaProduk || '-'}</div>
@@ -1958,8 +1988,19 @@
                             <div class="form-control-static">${umkm.kbli || '-'}</div>
                         </div>
                     `;
-                    document.querySelector('.modal-body').insertAdjacentHTML('beforeend', additionalInfo);
                 }
+                
+                // Sisipkan ke dalam modal
+                const modalBody = document.querySelector('#view-modal .modal-body');
+                const existingAdditional = modalBody.querySelector('.additional-info');
+                if (existingAdditional) {
+                    existingAdditional.remove();
+                }
+                
+                const additionalDiv = document.createElement('div');
+                additionalDiv.className = 'additional-info';
+                additionalDiv.innerHTML = additionalInfo;
+                modalBody.appendChild(additionalDiv);
                 
                 // Set status
                 let statusText = '';
@@ -2106,9 +2147,9 @@
                 });
             }
 
-            // Validasi field berdasarkan status
-            if (status === 'certified' && !sh) {
-                alert('Nomor SH wajib diisi untuk UMKM yang sudah bersertifikat!');
+            // Validasi berdasarkan status
+            if ((status === 'certified' || status === 'process') && !sh) {
+                alert('Nomor SH wajib diisi untuk UMKM yang sudah/sedang proses sertifikasi!');
                 return;
             }
             
@@ -2770,25 +2811,23 @@
         }
         function toggleFormFieldsBasedOnStatus() {
             const status = document.querySelector('input[name="status-halal"]:checked')?.value;
-            const shGroup = document.getElementById('sh-group');
-            const uncertifiedFields = document.getElementById('uncertified-fields');
+            const shContainer = document.getElementById('sh-container');
+            const uncertifiedContainer = document.getElementById('uncertified-container');
             
-            // Sembunyikan semua field khusus terlebih dahulu
-            shGroup.style.display = 'none';
-            uncertifiedFields.style.display = 'none';
-            
-            // Atur required attribute
+            // Reset semua field
+            shContainer.classList.remove('show');
+            uncertifiedContainer.classList.remove('show');
             document.getElementById('sh').required = false;
             document.getElementById('nama-produk').required = false;
             document.getElementById('nib').required = false;
             document.getElementById('kbli').required = false;
             
             // Tampilkan field sesuai status
-            if (status === 'certified') {
-                shGroup.style.display = 'block';
+            if (status === 'certified' || status === 'process') {
+                shContainer.classList.add('show');
                 document.getElementById('sh').required = true;
             } else if (status === 'not-certified') {
-                uncertifiedFields.style.display = 'block';
+                uncertifiedContainer.classList.add('show');
                 document.getElementById('nama-produk').required = true;
                 document.getElementById('nib').required = true;
                 document.getElementById('kbli').required = true;
