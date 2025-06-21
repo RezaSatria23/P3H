@@ -1445,6 +1445,7 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
+            toggleFormFieldsBasedOnStatus():
             initClock();
             initMenu();
             loadUmkmData();
@@ -2147,7 +2148,7 @@
                 });
             }
 
-            // Validasi berdasarkan status
+             // Validasi berdasarkan status
             if ((status === 'certified' || status === 'process') && !sh) {
                 alert('Nomor SH wajib diisi untuk UMKM yang sudah/sedang proses sertifikasi!');
                 return;
@@ -2293,9 +2294,7 @@
 
             // Di dalam fungsi initEventListeners(), tambahkan:
             document.querySelectorAll('input[name="status-halal"]').forEach(radio => {
-                radio.addEventListener('change', function() {
-                    toggleFormFieldsBasedOnStatus();
-                });
+                radio.addEventListener('change', toggleFormFieldsBasedOnStatus);
             });
             
             // Search and filter functionality
@@ -2814,20 +2813,23 @@
             const shContainer = document.getElementById('sh-container');
             const uncertifiedContainer = document.getElementById('uncertified-container');
             
-            // Reset semua field
-            shContainer.classList.remove('show');
-            uncertifiedContainer.classList.remove('show');
+            // Sembunyikan semua field terlebih dahulu
+            shContainer.style.display = 'none';
+            uncertifiedContainer.style.display = 'none';
             document.getElementById('sh').required = false;
             document.getElementById('nama-produk').required = false;
             document.getElementById('nib').required = false;
             document.getElementById('kbli').required = false;
             
             // Tampilkan field sesuai status
-            if (status === 'certified' || status === 'process') {
-                shContainer.classList.add('show');
+            if (status === 'certified') {
+                shContainer.style.display = 'block';
+                document.getElementById('sh').required = true;
+            } else if (status === 'process') {
+                shContainer.style.display = 'block';
                 document.getElementById('sh').required = true;
             } else if (status === 'not-certified') {
-                uncertifiedContainer.classList.add('show');
+                uncertifiedContainer.style.display = 'block';
                 document.getElementById('nama-produk').required = true;
                 document.getElementById('nib').required = true;
                 document.getElementById('kbli').required = true;
