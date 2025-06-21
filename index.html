@@ -908,7 +908,7 @@
                                     <th>Nama UMKM</th>
                                     <th>Pemilik</th>                                
                                     <th>Jenis Produk</th>
-                                    <th>KBLI</th>
+                                    <th>No SH</th>
                                     <th>Kecamatan</th>
                                     <th>Kelurahan</th>
                                     <th>Status Halal</th>
@@ -966,7 +966,7 @@
                                     <th>Nama UMKM</th>
                                     <th>Pemilik</th>
                                     <th>Jenis Produk</th>
-                                    <th>KBLI</th>
+                                    <th>No SH</th>
                                     <th>Kecamatan</th>
                                     <th>Kelurahan</th>
                                     <th>Status Halal</th>
@@ -1044,7 +1044,7 @@
                                     <th>Nama UMKM</th>
                                     <th>Pemilik</th>
                                     <th>Jenis Produk</th>
-                                    <th>KBLI</th>
+                                    <th>No SH</th>
                                     <th>Tanggal Pendaftaran</th>
                                     <th>Status</th>
                                     <th>Progress</th>
@@ -1232,10 +1232,10 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="kbli">Kode KBLI</label>
-                        <input type="text" id="kbli" class="form-control" placeholder="Masukkan kode KBLI" required>
+                        <label for="sh">Nomor SH</label>
+                        <input type="text" id="sh" class="form-control" placeholder="Masukkan Nomor sh" required>
                         <small style="display: block; margin-top: 5px; color: #666;">
-                            Contoh: 10712 (Industri Roti, Kue Kering dan Sejenisnya)
+                            Contoh: SH2025-1-123456
                         </small>
                     </div>
 
@@ -1333,8 +1333,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Kode KBLI</label>
-                    <div class="form-control-static" id="view-kbli"></div>
+                    <label>No SH</label>
+                    <div class="form-control-static" id="view-sh"></div>
                 </div>
                 <div class="form-group">
                     <label>Lokasi</label>
@@ -1639,7 +1639,7 @@
                     <td>${umkm.nama}</td>
                     <td>${umkm.pemilik}</td>
                     <td>${getJenisProdukLabel(umkm.jenisProduk)}</td>
-                    <td>${umkm.kbli || '-'}</td>
+                    <td>${umkm.sh || '-'}</td>
                     <td>${umkm.kecamatan?.name || '-'}</td>
                     <td>${umkm.kelurahan?.name || '-'}</td>
                     <td>${getStatusBadge(umkm.status)}</td>
@@ -1687,7 +1687,7 @@
                     <td>${umkm.nama}</td>
                     <td>${umkm.pemilik}</td>
                     <td>${getJenisProdukLabel(umkm.jenisProduk)}</td>
-                    <td>${umkm.kbli || '-'}</td>
+                    <td>${umkm.sh || '-'}</td>
                     <td>${umkm.kecamatan?.name || '-'}</td>
                     <td>${umkm.kelurahan?.name || '-'}</td>
                     <td>${getStatusBadge(umkm.status)}</td>
@@ -1726,7 +1726,7 @@
                     <td>${umkm.nama}</td>
                     <td>${umkm.pemilik}</td>
                     <td>${getJenisProdukLabel(umkm.jenisProduk)}</td>
-                    <td>${umkm.kbli || '-'}</td>
+                    <td>${umkm.sh || '-'}</td>
                     <td>${formatDate(umkm.tanggalDaftar)}</td>
                     <td>${getStatusBadge(umkm.status)}</td>
                     <td>
@@ -1854,7 +1854,7 @@
                 document.getElementById('nama-umkm').value = umkm.nama;
                 document.getElementById('pemilik').value = umkm.pemilik;
                 document.getElementById('jenis-produk').value = umkm.jenisProduk || '';
-                document.getElementById('kbli').value = umkm.kbli || '';
+                document.getElementById('sh').value = umkm.sh || '';
                 document.getElementById('alamat').value = umkm.alamat;
                 document.getElementById('maps').value = umkm.maps || '';
                 document.getElementById('keterangan').value = umkm.keterangan || '';
@@ -1910,7 +1910,7 @@
                 document.getElementById('view-nama-umkm').textContent = umkm.nama;
                 document.getElementById('view-pemilik').textContent = umkm.pemilik;
                 document.getElementById('view-jenis-produk').textContent = getJenisProdukLabel(umkm.jenisProduk);
-                document.getElementById('view-kbli').textContent = umkm.kbli || '-';
+                document.getElementById('view-sh').textContent = umkm.sh || '-';
                 document.getElementById('view-provinsi').textContent = umkm.provinsi.name;
                 document.getElementById('view-kabupaten').textContent = umkm.kabupaten.name;
                 document.getElementById('view-kecamatan').textContent = umkm.kecamatan.name;
@@ -1978,7 +1978,7 @@
             const nama = document.getElementById('nama-umkm').value;
             const pemilik = document.getElementById('pemilik').value;
             const jenisProduk = document.getElementById('jenis-produk').value;
-            const kbli = document.getElementById('kbli').value;
+            const sh = document.getElementById('sh').value;
             const provinsiId = document.getElementById('provinsi').value;
             const provinsiName = document.getElementById('provinsi').options[document.getElementById('provinsi').selectedIndex].text;
             const kabupatenId = document.getElementById('kabupaten').value;
@@ -2020,7 +2020,7 @@
                         nama,
                         pemilik,
                         jenisProduk,
-                        kbli,
+                        sh,
                         provinsi: { id: provinsiId, name: provinsiName },
                         kabupaten: { id: kabupatenId, name: kabupatenName },
                         kecamatan: { id: kecamatanId, name: kecamatanName },
@@ -2041,7 +2041,7 @@
                     nama,
                     pemilik,
                     jenisProduk,
-                    kbli,
+                    sh,
                     provinsi: { id: provinsiId, name: provinsiName },
                     kabupaten: { id: kabupatenId, name: kabupatenName },
                     kecamatan: { id: kecamatanId, name: kecamatanName },
@@ -2223,7 +2223,7 @@
             const filteredData = umkmData.filter(umkm => {
                 const matchesSearch = umkm.nama.toLowerCase().includes(searchTerm) || 
                                     umkm.pemilik.toLowerCase().includes(searchTerm) ||
-                                    (umkm.kbli && umkm.kbli.includes(searchTerm));
+                                    (umkm.sh && umkm.sh.includes(searchTerm));
                 const matchesKecamatan = kecamatanFilter ? umkm.kecamatan.name === kecamatanFilter : true;
                 const matchesStatus = statusFilter ? umkm.status === statusFilter : true;
                 const matchesJenis = jenisFilter ? umkm.jenisProduk === jenisFilter : true;
