@@ -801,16 +801,23 @@
             background-color: #334155;
         }
         
-        /* Copyright Inside Content */
+        /* Copyright Inside Content - Fixed to Bottom */
+        .card {
+            position: relative; /* Container untuk posisi absolute copyright */
+            min-height: calc(100vh - 200px); /* Sesuaikan dengan kebutuhan */
+            padding-bottom: 60px; /* Ruang untuk copyright */
+        }
+
         .content-copyright {
-            position: sticky;
+            position: absolute;
             bottom: 20px;
+            left: 20px;
+            right: 20px;
             background-color: rgba(255, 255, 255, 0.9);
             color: var(--dark);
             padding: 10px 15px;
             text-align: center;
             font-size: 0.7rem;
-            margin-top: 20px;
             border-radius: 5px;
             border: 1px solid #eee;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
@@ -822,10 +829,10 @@
             border-color: #334155;
         }
 
-        /* Adjust card padding */
-        .card {
-            position: relative;
-            padding-bottom: 40px; /* Ruang untuk copyright */
+        /* Untuk halaman dengan tabel panjang */
+        .table-responsive {
+            max-height: calc(100vh - 300px); /* Sesuaikan tinggi maksimal tabel */
+            overflow-y: auto;
         }
 
     </style>
@@ -948,9 +955,17 @@
                         </table>
                     </div>
                 </div>
-                <div class="content-copyright">
-                    <p>© 2025 Halal UMKM Tracker - Dilarang memperjualbelikan aplikasi ini</p>
-                    <p>Dikembangkan oleh <a href="https://wa.me/62882006080066" target="_blank">PPP Halal Jateng</a></p>
+                <div class="card fade-in">
+                    <!-- Konten card lainnya -->
+                    <div class="table-responsive">
+                        <!-- Tabel atau konten utama -->
+                    </div>
+                    
+                    <!-- Copyright tetap di bawah -->
+                    <div class="content-copyright">
+                        <p>© 2025 Halal UMKM Tracker - Dilarang memperjualbelikan aplikasi ini</p>
+                        <p>Dikembangkan oleh <a href="https://wa.me/62882006080066" target="_blank">PPP Halal Jateng</a></p>
+                    </div>
                 </div>
             </div>
             
