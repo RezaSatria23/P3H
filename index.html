@@ -1870,14 +1870,22 @@
                 document.getElementById('nama-umkm').value = umkm.nama;
                 document.getElementById('pemilik').value = umkm.pemilik;
                 document.getElementById('jenis-produk').value = umkm.jenisProduk || '';
-                document.getElementById('sh').value = umkm.sh || '';
                 document.getElementById('alamat').value = umkm.alamat;
                 document.getElementById('maps').value = umkm.maps || '';
                 document.getElementById('keterangan').value = umkm.keterangan || '';
                 
                 // Set status
                 document.querySelector(`input[name="status-halal"][value="${umkm.status}"]`).checked = true;
-                
+                toggleAdditionalForms(umkm.status);
+
+                if (umkm.status === 'not-certified') {
+                    document.getElementById('nama-produk').value = umkm.namaProduk || '';
+                    document.getElementById('nib').value = umkm.nib || '';
+                    document.getElementById('kbli').value = umkm.kbli || '';
+                } else if (umkm.status === 'process' || umkm.status === 'certified') {
+                    document.getElementById('nomor-sh').value = umkm.sh || '';
+                }
+
                 // Load provinsi data
                 const provinceDropdown = document.getElementById('provinsi');
                 provinceDropdown.value = umkm.provinsi.id;
@@ -1915,19 +1923,6 @@
                 // Show modal
                 umkmModal.style.display = 'flex';
                 document.body.style.overflow = 'hidden';
-
-                // Set status dan tampilkan form tambahan
-                document.querySelector(`input[name="status-halal"][value="${umkm.status}"]`).checked = true;
-                toggleAdditionalForms(umkm.status);
-                
-                // Isi form tambahan jika ada
-                if (umkm.status === 'not-certified') {
-                    document.getElementById('nama-produk').value = umkm.namaProduk || '';
-                    document.getElementById('nib').value = umkm.nib || '';
-                    document.getElementById('kbli').value = umkm.kbli || '';
-                } else if (umkm.status === 'process') {
-                    document.getElementById('nomor-sh').value = umkm.sh || '';
-                }   
             }
         }
 
@@ -2046,10 +2041,12 @@
             const maps = document.getElementById('maps').value;
             const status = document.querySelector('input[name="status-halal"]:checked')?.value;
             const keterangan = document.getElementById('keterangan').value;
-            const namaProduk = document.getElementById('nama-produk').value;
-            const nib = document.getElementById('nib').value;
-            const kbli = document.getElementById('kbli').value;
-            const nomorShProses = document.getElementById('nomor-sh')?.value;
+
+            // Dapatkan nilai dari form tambahan berdasarkan status
+            const namaProduk = document.getElementById('nama-produk')?.value || '';
+            const nib = document.getElementById('nib')?.value || '';
+            const kbli = document.getElementById('kbli')?.value || '';
+            const nomorSh = document.getElementById('nomor-sh')?.value || '';
             
             // Di dalam fungsi saveUmkm(), modifikasi bagian maps:
             const mapsInput = document.getElementById('maps').value;
@@ -2079,7 +2076,7 @@
                         nama,
                         pemilik,
                         jenisProduk,
-                        sh: status === 'process' ? nomorShProses : sh,
+                        sh: status === 'certified' || status === 'process' ? nomorSh : '',
                         provinsi: { id: provinsiId, name: provinsiName },
                         kabupaten: { id: kabupatenId, name: kabupatenName },
                         kecamatan: { id: kecamatanId, name: kecamatanName },
@@ -2090,7 +2087,9 @@
                         keterangan,
                         namaProduk: status === 'not-certified' ? namaProduk : '',
                         nib: status === 'not-certified' ? nib : '',
-                        kbli: status === 'not-certified' ? kbli : ''
+                        kbli: status === 'not-certified' ? kbli : '',
+                        // Pertahankan tanggal pendaftaran asli saat edit
+                        tanggalDaftar: umkmData[index].tanggalDaftar
                     };
                 }
             } else {
@@ -2103,7 +2102,7 @@
                     nama,
                     pemilik,
                     jenisProduk,
-                    sh: status === 'process' ? nomorShProses : sh,
+                    sh: status === 'certified' || status === 'process' ? nomorSh : '',
                     provinsi: { id: provinsiId, name: provinsiName },
                     kabupaten: { id: kabupatenId, name: kabupatenName },
                     kecamatan: { id: kecamatanId, name: kecamatanName },
@@ -2773,7 +2772,6 @@
         function toggleAdditionalForms(status) {
             const belumForm = document.getElementById('belum-form');
             const prosesForm = document.getElementById('proses-form');
-            const shField = document.getElementById('sh');
             
             // Sembunyikan semua form tambahan terlebih dahulu
             belumForm.style.display = 'none';
