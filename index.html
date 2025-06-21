@@ -321,6 +321,7 @@
             justify-content: space-around;
             padding: 10px 0;
             box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
         }
 
         .bottom-nav-item {
@@ -565,9 +566,6 @@
                 margin-right: 0;
                 font-size: 1.2rem;
             }
-            .content-footer {
-                left: 70px;
-            }
         }
 
         @media (max-width: 768px) {
@@ -584,7 +582,7 @@
             }
 
             .main-content {
-                padding-bottom: 120px; /* Footer height + bottom nav height */
+                padding-bottom: 70px;
             }
 
             .card-header {
@@ -606,33 +604,6 @@
 
             .search-box {
                 width: 100%;
-            }
-             .content-footer {
-                position: fixed;
-                left: 0 !important;
-                right: 0;
-                bottom: 60px; /* Tinggi bottom-nav */
-                padding: 8px 10px;
-                font-size: 0.65rem;
-                width: 100%;
-                max-height: 15vh; /* Maksimal 15% tinggi layar */
-                overflow-y: auto;
-                background: white;
-                z-index: 95;
-                box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
-            }
-
-            body.dark-theme .content-footer {
-                background: #1e293b;
-            }
-
-            .main-content {
-                padding-bottom: 25vh !important; /* Ruang untuk footer + bottom-nav */
-            }
-
-            .bottom-nav {
-                height: 50px;
-                z-index: 100;
             }
         }
 
@@ -830,28 +801,6 @@
             background-color: #334155;
         }
 
-        /* Footer Styles */
-        .content-footer {
-            position: fixed;
-            bottom: 0;
-            left: 250px;
-            right: 0;
-            padding: 10px 15px;
-            text-align: center;
-            color: #666;
-            font-size: 0.8rem;
-            border-top: 1px solid #eee;
-            background-color: white;
-            z-index: 90;
-            transition: all 0.3s ease;
-        }
-
-        body.dark-theme .content-footer {
-            color: #94a3b8;
-            border-top-color: #334155;
-            background-color: #1e293b;
-        }
-
     </style>
 </head>
 <body>
@@ -971,9 +920,6 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
-                <div class="content-footer">
-                    &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved.
                 </div>
             </div>
             
@@ -1458,31 +1404,6 @@
         </div>
     </div>
 
-    <!-- Footer untuk setiap halaman -->
-    <div class="content-footer" id="dashboard-footer">
-        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved || Hak Cipta milik <a href="https://wa.me/+62882006080066" style="text-decoration: none; color: #94a3b8;">Reza Satria Tama </a>
-        <p><strong> Dilarang keras: </strong> Memperbanyak, mendistribusikan, atau memodifikasi seluruh atau sebagian konten tanpa izin tertulis dan Menggunakan konten untuk tujuan komersial</p>
-    </div>
-    <div class="content-footer" id="umkm-footer" style="display: none;">
-        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved || Hak Cipta milik <a href="https://wa.me/+62882006080066" style="text-decoration: none; color: #94a3b8;">Reza Satria Tama </a>
-        <p><strong> Dilarang keras: </strong> Memperbanyak, mendistribusikan, atau memodifikasi seluruh atau sebagian konten tanpa izin tertulis dan Menggunakan konten untuk tujuan komersial</p>    </div>
-    <div class="content-footer" id="map-footer" style="display: none;">
-        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved || Hak Cipta milik <a href="https://wa.me/+62882006080066" style="text-decoration: none; color: #94a3b8;">Reza Satria Tama </a>
-        <p><strong> Dilarang keras: </strong> Memperbanyak, mendistribusikan, atau memodifikasi seluruh atau sebagian konten tanpa izin tertulis dan Menggunakan konten untuk tujuan komersial</p>
-    </div>
-    <div class="content-footer" id="certification-footer" style="display: none;">
-        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved || Hak Cipta milik <a href="https://wa.me/+62882006080066" style="text-decoration: none; color: #94a3b8;">Reza Satria Tama </a>
-        <p><strong> Dilarang keras: </strong> Memperbanyak, mendistribusikan, atau memodifikasi seluruh atau sebagian konten tanpa izin tertulis dan Menggunakan konten untuk tujuan komersial</p>
-    </div>
-    <div class="content-footer" id="stats-footer" style="display: none;">
-        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved || Hak Cipta milik <a href="https://wa.me/+62882006080066" style="text-decoration: none; color: #94a3b8;">Reza Satria Tama </a>
-        <p><strong> Dilarang keras: </strong> Memperbanyak, mendistribusikan, atau memodifikasi seluruh atau sebagian konten tanpa izin tertulis dan Menggunakan konten untuk tujuan komersial</p>
-    </div>
-    <div class="content-footer" id="settings-footer" style="display: none;">
-        &copy; 2025 Halal UMKM Tracker - PPPH Jawa Tengah. All Rights Reserved || Hak Cipta milik <a href="https://wa.me/+62882006080066" style="text-decoration: none; color: #94a3b8;">Reza Satria Tama </a>
-        <p><strong> Dilarang keras: </strong> Memperbanyak, mendistribusikan, atau memodifikasi seluruh atau sebagian konten tanpa izin tertulis dan Menggunakan konten untuk tujuan komersial</p>
-    </div>
-
     <!-- Include Chart.js for statistics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -1507,7 +1428,6 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('dashboard-footer').style.display = 'block';
             initClock();
             initMenu();
             loadUmkmData();
@@ -1606,14 +1526,6 @@
                     } else if (pageId === 'map') {
                         renderMapByDistrict();
                     }
-
-                     // Sembunyikan semua footer
-                    document.querySelectorAll('.content-footer').forEach(footer => {
-                        footer.style.display = 'none';
-                    });
-                    
-                    // Tampilkan footer yang sesuai
-                    document.getElementById(`${pageId}-footer`).style.display = 'block';
                 }
             });
         }
@@ -2367,31 +2279,6 @@
                 radio.addEventListener('change', function() {
                     toggleAdditionalForms(this.value);
                 });
-            });
-
-            // Tambahkan di bagian initEventListeners() atau DOMContentLoaded
-            function updateFooterPosition() {
-                const footer = document.querySelector('.content-footer[style*="display: block"]') || 
-                            document.getElementById('dashboard-footer');
-                const isMobile = window.innerWidth <= 768;
-                
-                if (isMobile && footer) {
-                    footer.style.left = '0';
-                    footer.style.right = '0';
-                    footer.style.width = '100%';
-                }
-            }
-
-            // Panggil saat load dan resize
-            window.addEventListener('load', updateFooterPosition);
-            window.addEventListener('resize', updateFooterPosition);
-
-            // Juga panggil saat ganti halaman
-            menuItems.forEach(item => {
-                item.addEventListener('click', updateFooterPosition);
-            });
-            bottomNavItems.forEach(item => {
-                item.addEventListener('click', updateFooterPosition);
             });
         }
 
