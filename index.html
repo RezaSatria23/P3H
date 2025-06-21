@@ -800,40 +800,6 @@
         body.dark-theme table th {
             background-color: #334155;
         }
-        
-        /* Copyright Inside Content - Fixed to Bottom */
-        .card {
-            position: relative; /* Container untuk posisi absolute copyright */
-            min-height: calc(100vh - 200px); /* Sesuaikan dengan kebutuhan */
-            padding-bottom: 60px; /* Ruang untuk copyright */
-        }
-
-        .content-copyright {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background-color: rgba(255, 255, 255, 0.9);
-            color: var(--dark);
-            padding: 10px 15px;
-            text-align: center;
-            font-size: 0.7rem;
-            border-radius: 5px;
-            border: 1px solid #eee;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-
-        body.dark-theme .content-copyright {
-            background-color: rgba(30, 41, 59, 0.9);
-            color: #e2e8f0;
-            border-color: #334155;
-        }
-
-        /* Untuk halaman dengan tabel panjang */
-        .table-responsive {
-            max-height: calc(100vh - 300px); /* Sesuaikan tinggi maksimal tabel */
-            overflow-y: auto;
-        }
 
     </style>
 </head>
@@ -955,11 +921,6 @@
                         </table>
                     </div>
                 </div>
-                    <!-- Copyright tetap di bawah -->
-                    <div class="content-copyright">
-                        <p>© 2025 Halal UMKM Tracker - Dilarang memperjualbelikan aplikasi ini</p>
-                        <p>Dikembangkan oleh <a href="https://wa.me/62882006080066" target="_blank">PPP Halal Jateng</a></p>
-                    </div>
             </div>
             
             <!-- UMKM Data Page -->
